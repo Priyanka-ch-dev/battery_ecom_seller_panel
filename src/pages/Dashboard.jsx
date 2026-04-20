@@ -12,10 +12,11 @@ import { Link } from 'react-router-dom';
 
 const StatCard = ({ title, value, icon: Icon, color, delay }) => (
   <div className="animate-fade-in card-minimal" style={{
-    background: `${color}08`,
+    background: `${color}20`,
     padding: '24px',
     borderRadius: 'var(--radius-lg)',
-    border: `1px solid ${color}15`,
+    border: `1px solid ${color}35`,
+    boxShadow: `0 4px 6px -1px ${color}15, 0 2px 4px -1px ${color}10`,
     animationDelay: `${delay}s`,
     display: 'flex',
     flexDirection: 'column',
@@ -25,7 +26,7 @@ const StatCard = ({ title, value, icon: Icon, color, delay }) => (
       <div style={{
         width: '44px',
         height: '44px',
-        background: `${color}10`,
+        background: `${color}30`,
         borderRadius: '12px',
         display: 'flex',
         alignItems: 'center',
@@ -70,8 +71,8 @@ const Dashboard = () => {
           completed: orders.filter(o => ['COMPLETED', 'DELIVERED'].includes(o.status)).length,
         });
 
-        const activeOrders = orders.filter(o => ['PENDING', 'ASSIGNED', 'OUT_FOR_DELIVERY'].includes(o.status)).sort((a,b) => b.id - a.id);
-        setRecentOrders(activeOrders.slice(0, 5));
+        const sortedOrders = [...orders].sort((a,b) => b.id - a.id);
+        setRecentOrders(sortedOrders.slice(0, 5));
       } catch (error) {
         console.error('Failed to fetch stats', error);
       } finally {
@@ -96,10 +97,10 @@ const Dashboard = () => {
         gap: '16px',
         marginBottom: '40px'
       }}>
-        <StatCard title="Assigned Orders" value={stats.total} icon={ShoppingBag} color="#0F172A" delay={0.1} />
-        <StatCard title="Pending Review" value={stats.pending} icon={Clock} color="#F59E0B" delay={0.2} />
-        <StatCard title="In Progress" value={stats.in_progress} icon={TrendingUp} color="#3B82F6" delay={0.3} />
-        <StatCard title="Completed" value={stats.completed} icon={CheckCircle2} color="#10B981" delay={0.4} />
+        <StatCard title="Assigned Orders" value={stats.total} icon={ShoppingBag} color="#020617" delay={0.1} />
+        <StatCard title="Pending Review" value={stats.pending} icon={Clock} color="#D97706" delay={0.2} />
+        <StatCard title="In Progress" value={stats.in_progress} icon={TrendingUp} color="#2563EB" delay={0.3} />
+        <StatCard title="Completed" value={stats.completed} icon={CheckCircle2} color="#059669" delay={0.4} />
       </div>
 
       <div className="hover-lift" style={{
@@ -117,7 +118,7 @@ const Dashboard = () => {
             {hasPending ? 'Ready to work?' : "You're all caught up!"}
           </h3>
           <p style={{ color: 'var(--text-dim)', fontWeight: 600, fontSize: '14px' }}>
-            {hasPending 
+            {hasPending
               ? `You have ${stats.pending} new orders waiting for your attention.`
               : 'There are no pending assignments at the moment. Great job!'}
           </p>
@@ -145,7 +146,7 @@ const Dashboard = () => {
 
       {/* Recent Orders Section */}
       <div style={{ marginTop: '40px' }}>
-        <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '16px' }}>Orders to Deliver</h2>
+        <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '16px' }}>Recent Orders</h2>
         <div style={{
           background: '#fff',
           borderRadius: 'var(--radius-md)',
@@ -159,6 +160,8 @@ const Dashboard = () => {
                   <th style={{ padding: '16px', borderBottom: '1px solid var(--border)', color: 'var(--text-main)', fontSize: '12px', textTransform: 'uppercase', fontWeight: 800 }}>Order ID</th>
                   <th style={{ padding: '16px', borderBottom: '1px solid var(--border)', color: 'var(--text-main)', fontSize: '12px', textTransform: 'uppercase', fontWeight: 800 }}>Customer</th>
                   <th style={{ padding: '16px', borderBottom: '1px solid var(--border)', color: 'var(--text-main)', fontSize: '12px', textTransform: 'uppercase', fontWeight: 800 }}>Address</th>
+                  <th style={{ padding: '16px', borderBottom: '1px solid var(--border)', color: 'var(--text-main)', fontSize: '12px', textTransform: 'uppercase', fontWeight: 800 }}>Date/Time</th>
+                  <th style={{ padding: '16px', borderBottom: '1px solid var(--border)', color: 'var(--text-main)', fontSize: '12px', textTransform: 'uppercase', fontWeight: 800 }}>Items</th>
                   <th style={{ padding: '16px', borderBottom: '1px solid var(--border)', color: 'var(--text-main)', fontSize: '12px', textTransform: 'uppercase', fontWeight: 800 }}>Status</th>
                 </tr>
               </thead>
@@ -166,10 +169,22 @@ const Dashboard = () => {
                 {recentOrders.map(order => (
                   <tr key={order.id} style={{ borderBottom: '1px solid var(--border)' }} className="hover-lift">
                     <td style={{ padding: '16px', fontSize: '14px', fontWeight: 600 }}>#{order.id}</td>
-                    <td style={{ padding: '16px', fontSize: '14px', color: 'var(--text-dim)', fontWeight: 500 }}>{order.customer_name}</td>
+                    <td style={{ padding: '16px', fontSize: '14px', color: 'var(--text-dim)', fontWeight: 500 }}>
+                      <div style={{ color: 'var(--text-main)', fontWeight: 700 }}>{order.customer_name || 'N/A'}</div>
+                      <div style={{ fontSize: '12px', marginTop: '4px' }}>{order.customer_phone || 'No Phone'}</div>
+                    </td>
                     <td style={{ padding: '16px', fontSize: '14px', color: 'var(--text-dim)' }}>
                       <div style={{ maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                         {order.shipping_address}
+                        {order.shipping_address || 'No Address'}
+                      </div>
+                    </td>
+                    <td style={{ padding: '16px', fontSize: '14px', color: 'var(--text-dim)' }}>
+                      <div style={{ color: 'var(--text-main)', fontWeight: 600 }}>{order.delivery_date ? new Date(order.delivery_date).toLocaleDateString() : 'TBD'}</div>
+                      <div style={{ fontSize: '12px', marginTop: '4px' }}>{order.delivery_time || 'Anytime'}</div>
+                    </td>
+                    <td style={{ padding: '16px', fontSize: '14px', color: 'var(--text-dim)' }}>
+                      <div style={{ background: 'var(--bg-sub)', padding: '4px 8px', borderRadius: '4px', display: 'inline-block', fontWeight: 600, fontSize: '12px', color: 'var(--text-dim)' }}>
+                        {order.items?.length || 0} Item(s)
                       </div>
                     </td>
                     <td style={{ padding: '16px' }}>
@@ -189,8 +204,8 @@ const Dashboard = () => {
               </tbody>
             </table>
           ) : (
-            <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-dim)', fontSize: '14px', fontWeight: 600 }}>
-              No orders need delivery right now.
+            <div style={{ padding: '32px', textAlign: 'center', color: '#94A3B8', fontSize: '14px', fontWeight: 600 }}>
+              No recent orders found.
             </div>
           )}
         </div>
