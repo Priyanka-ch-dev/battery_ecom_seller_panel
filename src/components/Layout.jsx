@@ -11,7 +11,8 @@ import {
   Battery,
   Wrench,
   Menu,
-  X
+  X,
+  Wallet
 } from 'lucide-react';
 
 const Layout = () => {
@@ -28,7 +29,10 @@ const Layout = () => {
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
     { name: 'My Orders', path: '/orders', icon: ShoppingBag },
     { name: 'Installations', path: '/installations', icon: Wrench },
+    { name: 'Wallet & Earnings', path: '/wallet', icon: Wallet },
+    { name: 'Company Profile', path: '/profile', icon: User },
   ];
+
 
   return (
     <div className="layout-wrapper">
@@ -103,9 +107,9 @@ const Layout = () => {
             <button className="menu-toggle-btn" onClick={toggleSidebar}>
               <Menu size={24} />
             </button>
-            <button 
+            <button
               className="desktop-only"
-              onClick={toggleCollapse} 
+              onClick={toggleCollapse}
               style={{
                 display: 'flex',
                 alignItems: 'center',

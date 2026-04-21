@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { KeyRound, Mail, AlertCircle, Loader2 } from 'lucide-react';
 
 const Login = () => {
@@ -145,7 +145,10 @@ const Login = () => {
           </button>
         </form>
 
-        <div style={{ marginTop: '32px', textAlign: 'center' }}>
+        <div style={{ marginTop: '32px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <p style={{ fontSize: '14px', color: 'var(--text-dim)', fontWeight: 600 }}>
+            Don't have an account? <Link to="/register" style={{ color: 'var(--primary)', fontWeight: 800 }}>Sign up here</Link>
+          </p>
           <p style={{ fontSize: '13px', color: 'var(--text-dim)' }}>
             Are you an admin? <a href="http://localhost:5173" style={{ color: 'var(--primary)', fontWeight: 700 }}>Admin Login</a>
           </p>

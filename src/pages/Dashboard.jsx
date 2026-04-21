@@ -71,7 +71,7 @@ const Dashboard = () => {
           completed: orders.filter(o => ['COMPLETED', 'DELIVERED'].includes(o.status)).length,
         });
 
-        const sortedOrders = [...orders].sort((a,b) => b.id - a.id);
+        const sortedOrders = [...orders].sort((a, b) => b.id - a.id);
         setRecentOrders(sortedOrders.slice(0, 5));
       } catch (error) {
         console.error('Failed to fetch stats', error);
