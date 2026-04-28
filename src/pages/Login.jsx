@@ -147,11 +147,12 @@ const Login = () => {
 
         <div style={{ marginTop: '32px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <p style={{ fontSize: '14px', color: 'var(--text-dim)', fontWeight: 600 }}>
-            Don't have an account? <Link to="/register" style={{ color: 'var(--primary)', fontWeight: 800 }}>Sign up here</Link>
+            Don't have an account? <Link to="/seller/register" style={{ color: 'var(--primary)', fontWeight: 800 }}>Sign up as Seller</Link>
           </p>
-          <p style={{ fontSize: '13px', color: 'var(--text-dim)' }}>
+
+          {/* <p style={{ fontSize: '13px', color: 'var(--text-dim)' }}>
             Are you an admin? <a href="http://localhost:5173" style={{ color: 'var(--primary)', fontWeight: 700 }}>Admin Login</a>
-          </p>
+          </p> */}
         </div>
       </div>
 

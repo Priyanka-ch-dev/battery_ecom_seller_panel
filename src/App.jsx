@@ -9,6 +9,8 @@ import Installations from './pages/Installations';
 import Profile from './pages/Profile';
 import Wallet from './pages/Wallet';
 import Register from './pages/Register';
+import SellerRegister from './pages/SellerRegister';
+
 
 
 const ProtectedRoute = ({ children }) => {
@@ -31,7 +33,9 @@ const App = () => {
       <AuthProvider>
         <Routes>
           <Route path="/register" element={<Register />} />
+          <Route path="/seller/register" element={<SellerRegister />} />
           <Route path="/login" element={<Login />} />
+
 
           <Route path="/" element={
             <ProtectedRoute>
