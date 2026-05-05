@@ -10,6 +10,7 @@ import Profile from './pages/Profile';
 import Wallet from './pages/Wallet';
 import Register from './pages/Register';
 import SellerRegister from './pages/SellerRegister';
+import Invoices from './pages/Invoices';
 
 
 
@@ -45,6 +46,7 @@ const App = () => {
             <Route index element={<Dashboard />} />
             <Route path="orders" element={<Orders />} />
             <Route path="installations" element={<Installations />} />
+            <Route path="invoices" element={<Invoices />} />
             <Route path="wallet" element={<Wallet />} />
             <Route path="profile" element={<Profile />} />
           </Route>

@@ -12,7 +12,8 @@ import {
   Wrench,
   Menu,
   X,
-  Wallet
+  Wallet,
+  FileText
 } from 'lucide-react';
 
 const Layout = () => {
@@ -28,6 +29,7 @@ const Layout = () => {
   const menuItems = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
     { name: 'My Orders', path: '/orders', icon: ShoppingBag },
+    { name: 'Invoices', path: '/invoices', icon: FileText },
     { name: 'Installations', path: '/installations', icon: Wrench },
     { name: 'Wallet & Earnings', path: '/wallet', icon: Wallet },
     { name: 'Company Profile', path: '/profile', icon: User },

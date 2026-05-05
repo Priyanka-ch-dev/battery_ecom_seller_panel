@@ -6,7 +6,10 @@ import {
   Clock,
   AlertCircle,
   TrendingUp,
-  ArrowRight
+  ArrowRight,
+  Shield,
+  IndianRupee,
+  ShoppingCart
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -56,39 +59,85 @@ const StatCard = ({ title, value, icon: Icon, color, delay }) => (
 
 const Dashboard = () => {
   const [stats, setStats] = useState({ total: 0, pending: 0, completed: 0, in_progress: 0 });
+  const [earnings, setEarnings] = useState('0.00');
+  const [commission, setCommission] = useState('0.00');
   const [recentOrders, setRecentOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [walletLoading, setWalletLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(true);
+
+  const fetchData = async () => {
+    setLoading(true);
+    setStatsLoading(true);
+    setWalletLoading(true);
+    setProfileLoading(true);
+
+    // 1. Fetch Stats & Orders
+    api.get('orders/stats/')
+      .then(res => setStats(res.data))
+      .catch(err => console.error('Stats fetch failed', err))
+      .finally(() => setStatsLoading(false));
+
+    api.get('orders/')
+      .then(res => {
+        const orders = Array.isArray(res.data) ? res.data : res.data.results || [];
+        const sortedOrders = [...orders].sort((a, b) => (b.id || 0) - (a.id || 0));
+        setRecentOrders(sortedOrders.slice(0, 5));
+      })
+      .catch(err => console.error('Orders fetch failed', err))
+      .finally(() => setLoading(false));
+
+    // 2. Fetch Wallet
+    api.get('sellers/wallet/')
+      .then(res => {
+        const walletData = res.data.results || res.data;
+        setEarnings(walletData[0]?.total_earned || '0.00');
+      })
+      .catch(err => console.error('Wallet fetch failed', err))
+      .finally(() => setWalletLoading(false));
+
+    // 3. Fetch Profile
+    api.get('sellers/profiles/me/')
+      .then(res => setCommission(res.data.commission || '0.00'))
+      .catch(err => console.error('Profile fetch failed', err))
+      .finally(() => setProfileLoading(false));
+  };
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const response = await api.get('orders/');
-        const orders = Array.isArray(response.data) ? response.data : response.data.results || [];
-        setStats({
-          total: orders.length,
-          pending: orders.filter(o => ['PENDING', 'ASSIGNED'].includes(o.status)).length,
-          in_progress: orders.filter(o => ['IN_PROGRESS', 'SHIPPED', 'OUT_FOR_DELIVERY'].includes(o.status)).length,
-          completed: orders.filter(o => ['COMPLETED', 'DELIVERED'].includes(o.status)).length,
-        });
-
-        const sortedOrders = [...orders].sort((a, b) => b.id - a.id);
-        setRecentOrders(sortedOrders.slice(0, 5));
-      } catch (error) {
-        console.error('Failed to fetch stats', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchStats();
+    fetchData();
   }, []);
 
   const hasPending = stats.pending > 0;
 
   return (
     <div className="animate-fade-in">
-      <div style={{ marginBottom: '32px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '4px' }}>Dashboard Overview</h1>
-        <p style={{ color: 'red', fontWeight: 600, fontSize: '13px' }}>Monitor your performance metrics.</p>
+      <div style={{ marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <h1 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '4px' }}>Dashboard Overview</h1>
+          <p style={{ color: 'red', fontWeight: 600, fontSize: '13px' }}>Monitor your performance metrics.</p>
+        </div>
+        <button 
+          onClick={fetchData}
+          disabled={loading}
+          style={{ 
+            padding: '10px 20px', 
+            background: 'var(--text-main)', 
+            color: '#fff', 
+            borderRadius: 'var(--radius-sm)', 
+            border: 'none', 
+            fontWeight: 700, 
+            fontSize: '13px', 
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            opacity: loading ? 0.7 : 1
+          }}
+        >
+          {loading ? 'Refreshing...' : 'Refresh Data'}
+          <TrendingUp size={16} />
+        </button>
       </div>
 
       <div style={{
@@ -97,10 +146,11 @@ const Dashboard = () => {
         gap: '16px',
         marginBottom: '40px'
       }}>
-        <StatCard title="Assigned Orders" value={stats.total} icon={ShoppingBag} color="#020617" delay={0.1} />
-        <StatCard title="Pending Review" value={stats.pending} icon={Clock} color="#D97706" delay={0.2} />
-        <StatCard title="In Progress" value={stats.in_progress} icon={TrendingUp} color="#2563EB" delay={0.3} />
-        <StatCard title="Completed" value={stats.completed} icon={CheckCircle2} color="#059669" delay={0.4} />
+        <StatCard title="Assigned Orders" value={statsLoading ? '...' : stats.total} icon={ShoppingBag} color="#020617" delay={0.1} />
+        <StatCard title="Pending Review" value={statsLoading ? '...' : stats.pending} icon={Clock} color="#D97706" delay={0.2} />
+        <StatCard title="Total Earnings" value={walletLoading ? '...' : `₹${parseFloat(earnings).toLocaleString()}`} icon={IndianRupee} color="#059669" delay={0.3} />
+        <StatCard title="Commission Rate" value={profileLoading ? '...' : `${commission}%`} icon={Shield} color="#7C3AED" delay={0.4} />
+        <StatCard title="Completed" value={statsLoading ? '...' : stats.completed} icon={CheckCircle2} color="#2563EB" delay={0.5} />
       </div>
 
       <div className="hover-lift" style={{
@@ -146,14 +196,26 @@ const Dashboard = () => {
 
       {/* Recent Orders Section */}
       <div style={{ marginTop: '40px' }}>
-        <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '16px' }}>Recent Orders</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 800 }}>Recent Orders</h2>
+          {loading && <div style={{ fontSize: '12px', color: 'var(--primary)', fontWeight: 600 }}>Syncing with server...</div>}
+        </div>
+        
         <div style={{
           background: '#fff',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border)',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          minHeight: '200px',
+          display: 'flex',
+          flexDirection: 'column'
         }}>
-          {recentOrders.length > 0 ? (
+          {loading ? (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '12px', color: 'var(--text-dim)' }}>
+              <div className="animate-pulse" style={{ width: '40px', height: '40px', borderRadius: '50%', border: '3px solid var(--border)', borderTopColor: 'var(--primary)' }}></div>
+              <span style={{ fontWeight: 600, fontSize: '14px' }}>Fetching your latest assignments...</span>
+            </div>
+          ) : recentOrders.length > 0 ? (
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead>
                 <tr style={{ background: 'var(--bg-sub)' }}>
@@ -190,8 +252,8 @@ const Dashboard = () => {
                     <td style={{ padding: '16px' }}>
                       <span style={{
                         padding: '4px 12px',
-                        background: order.status === 'OUT_FOR_DELIVERY' ? '#FEF3C7' : (order.status === 'ASSIGNED' ? '#DBEAFE' : 'var(--bg-sub)'),
-                        color: order.status === 'OUT_FOR_DELIVERY' ? '#92400E' : (order.status === 'ASSIGNED' ? '#1E40AF' : 'var(--text-dim)'),
+                        background: order.status === 'OUT_FOR_DELIVERY' ? '#FEF3C7' : (['ASSIGNED', 'PENDING'].includes(order.status) ? '#DBEAFE' : 'var(--bg-sub)'),
+                        color: order.status === 'OUT_FOR_DELIVERY' ? '#92400E' : (['ASSIGNED', 'PENDING'].includes(order.status) ? '#1E40AF' : 'var(--text-dim)'),
                         borderRadius: '20px',
                         fontSize: '12px',
                         fontWeight: 700
@@ -204,8 +266,10 @@ const Dashboard = () => {
               </tbody>
             </table>
           ) : (
-            <div style={{ padding: '32px', textAlign: 'center', color: '#94A3B8', fontSize: '14px', fontWeight: 600 }}>
-              No recent orders found.
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px', textAlign: 'center', color: '#94A3B8', flexDirection: 'column', gap: '8px' }}>
+              <ShoppingCart size={40} style={{ opacity: 0.3, marginBottom: '8px' }} />
+              <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-main)' }}>No assignments yet</div>
+              <div style={{ fontSize: '13px', maxWidth: '300px' }}>When an admin assigns an order to you, it will appear here instantly.</div>
             </div>
           )}
         </div>

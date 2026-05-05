@@ -116,6 +116,7 @@ const Orders = () => {
               <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: '13px', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase' }}>Customer</th>
               <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: '13px', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase' }}>Date</th>
               <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: '13px', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase' }}>Payment</th>
+              <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: '13px', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase' }}>Earning</th>
               <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: '13px', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase' }}>Status</th>
               <th style={{ padding: '16px 24px', textAlign: 'right', fontSize: '13px', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase' }}>Actions</th>
             </tr>
@@ -148,15 +149,23 @@ const Orders = () => {
                   </td>
                   <td style={{ padding: '20px 24px' }}>
                     <div style={{ fontSize: '13px', fontWeight: 700, color: '#111827' }}>
-                        {order.payment_details?.method_display || 'COD'}
+                      {order.payment_details?.method_display || 'COD'}
                     </div>
-                    <div style={{ 
-                        fontSize: '11px', 
-                        fontWeight: 800, 
-                        color: paymentStatus === 'SUCCESS' || paymentStatus === 'PAID' ? '#059669' : '#D97706',
-                        marginTop: '4px'
+                    <div style={{
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      color: paymentStatus === 'SUCCESS' || paymentStatus === 'PAID' ? '#059669' : '#D97706',
+                      marginTop: '4px'
                     }}>
-                        {paymentStatus}
+                      {paymentStatus}
+                    </div>
+                  </td>
+                  <td style={{ padding: '20px 24px' }}>
+                    <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--primary)' }}>
+                      ₹{(order.items?.reduce((sum, item) => sum + parseFloat(item.seller_earning || 0), 0) || 0).toLocaleString()}
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: 600 }}>
+                      Net Payout
                     </div>
                   </td>
                   <td style={{ padding: '20px 24px' }}>

@@ -46,7 +46,9 @@ const SellerRegister = () => {
     pan_card_copy: null,
     aadhaar_card_copy: null,
     shop_license_copy: null,
-    bank_passbook_copy: null
+    bank_passbook_copy: null,
+    shop_image: null,
+    owner_image: null
   });
   
   const [loading, setLoading] = useState(false);
@@ -216,14 +218,16 @@ const SellerRegister = () => {
               </div>
             </Section>
 
-            {/* 4. Documents */}
-            <Section title="Document Uploads" icon={FileCheck} delay={0.4}>
-              <p style={{ fontSize: '14px', color: 'var(--text-dim)', marginBottom: '24px' }}>Please upload clear copies of the following documents (PDF, JPG, or PNG).</p>
+            {/* 4. Documents & Images */}
+            <Section title="Document & Image Uploads" icon={FileCheck} delay={0.4}>
+              <p style={{ fontSize: '14px', color: 'var(--text-dim)', marginBottom: '24px' }}>Please upload clear copies of the following documents and images (PDF, JPG, or PNG).</p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
                 <FileInput label="PAN Card Copy" name="pan_card_copy" onChange={handleFileChange} required fileName={files.pan_card_copy?.name} />
                 <FileInput label="Aadhar Card Copy" name="aadhaar_card_copy" onChange={handleFileChange} required fileName={files.aadhaar_card_copy?.name} />
                 <FileInput label="Shop License Copy" name="shop_license_copy" onChange={handleFileChange} required fileName={files.shop_license_copy?.name} />
                 <FileInput label="Bank Passbook Copy" name="bank_passbook_copy" onChange={handleFileChange} required fileName={files.bank_passbook_copy?.name} />
+                <FileInput label="Shop Image" name="shop_image" onChange={handleFileChange} required fileName={files.shop_image?.name} />
+                <FileInput label="Owner Image" name="owner_image" onChange={handleFileChange} required fileName={files.owner_image?.name} />
               </div>
             </Section>
 
