@@ -11,14 +11,15 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     setLoading(true);
     try {
-      const response = await api.post('login/', { email, password });
-      const { access, user: userData } = response.data;
+      const response = await api.post('users/login/', { email, password });
+      const { access, refresh, user: userData } = response.data;
       
       if (userData.role !== 'SELLER') {
         throw new Error('Unauthorized. Only sellers can access this panel.');
       }
 
       localStorage.setItem('seller_token', access);
+      localStorage.setItem('seller_refresh_token', refresh);
       localStorage.setItem('seller_user', JSON.stringify(userData));
       setToken(access);
       setUser(userData);
@@ -33,6 +34,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('seller_token');
+    localStorage.removeItem('seller_refresh_token');
     localStorage.removeItem('seller_user');
     setToken(null);
     setUser(null);
