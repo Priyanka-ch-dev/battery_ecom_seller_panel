@@ -15,14 +15,31 @@ import {
   Package
 } from 'lucide-react';
 
-const StatusBadge = ({ status }) => {
+const getStatusColor = (status) => {
   const config = {
-    'ASSIGNED': { bg: 'var(--bg-sub)', text: 'var(--text-dim)', label: 'Assigned' },
-    'IN_PROGRESS': { bg: 'var(--bg-sub)', text: 'var(--primary)', label: 'On Location' },
-    'COMPLETED': { bg: 'var(--bg-sub)', text: '#10B981', label: 'Verified' },
-    'DELIVERED': { bg: 'var(--bg-sub)', text: '#10B981', label: 'Finished' },
+    'ASSIGNED': { bg: '#EFF6FF', text: '#2563EB', label: 'Order Assigned' },
+    'SCHEDULED': { bg: '#F5F3FF', text: '#7C3AED', label: 'Scheduled' },
+    'INSTALLATION_STARTED': { bg: '#ECFDF5', text: '#10B981', label: 'Started' },
+    'IN_PROGRESS': { bg: '#FEF3C7', text: '#D97706', label: 'In Progress' },
+    'CONTINUED_TOMORROW': { bg: '#FFF5F5', text: '#E53E3E', label: 'Paused - Continued Tomorrow' },
+    'RESUMED': { bg: '#EBF8FF', text: '#3182CE', label: 'Resumed' },
+    'COMPLETED': { bg: '#ECFDF5', text: '#10B981', label: 'Completed' },
+    'AWAITING_CONFIRMATION': { bg: '#FEF3C7', text: '#D97706', label: 'Awaiting Customer' },
+    'VERIFIED': { bg: '#ECFDF5', text: '#10B981', label: 'Verified' },
+    'CLOSED': { bg: '#F3F4F6', text: '#6B7280', label: 'Closed Successfully' },
+    
+    // Legacy support
+    'PENDING': { bg: '#FFFBEB', text: '#D97706', label: 'Pending' },
+    'CONFIRMED': { bg: '#EFF6FF', text: '#2563EB', label: 'Confirmed' },
+    'SHIPPED': { bg: '#F5F3FF', text: '#7C3AED', label: 'Shipped' },
+    'OUT_FOR_DELIVERY': { bg: '#FEF3C7', text: '#D97706', label: 'Out for Delivery' },
+    'DELIVERED': { bg: '#ECFDF5', text: '#10B981', label: 'Delivered' },
   };
-  const s = config[status] || { bg: '#F9FAFB', text: '#94A3B8', label: status };
+  return config[status] || { bg: '#F9FAFB', text: '#94A3B8', label: status };
+};
+
+const StatusBadge = ({ status }) => {
+  const s = getStatusColor(status);
   return (
     <span style={{
       padding: '6px 14px',
@@ -71,10 +88,10 @@ const Installations = () => {
 
   const handleStatusUpdate = async (taskId, newStatus) => {
     try {
-      await api.patch(`orders/${taskId}/`, { status: newStatus });
+      await api.post(`orders/${taskId}/update_status/`, { status: newStatus });
       fetchTasks();
     } catch (error) {
-      alert('Failed to update status.');
+      alert(error.response?.data?.error || 'Failed to update status.');
     }
   };
 
@@ -194,209 +211,299 @@ const Installations = () => {
       </div>
 
       {/* Task Management Modal */}
-      {selectedTask && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          background: 'rgba(0,0,0,0.4)',
-          zIndex: 1000,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backdropFilter: 'blur(4px)'
-        }}>
-          <div className="animate-fade-in" style={{
-            width: '90%',
-            maxWidth: '900px',
-            maxHeight: '90vh',
-            background: '#fff',
-            borderRadius: 'var(--radius-lg)',
+      {selectedTask && (() => {
+        const getButtonColor = (variant) => {
+          switch (variant) {
+            case 'primary': return { bg: 'var(--primary)', text: '#fff' };
+            case 'success': return { bg: '#10B981', text: '#fff' };
+            case 'warning': return { bg: '#F59E0B', text: '#fff' };
+            case 'info': return { bg: '#3B82F6', text: '#fff' };
+            default: return { bg: 'var(--text-main)', text: '#fff' };
+          }
+        };
+
+        const getNextActions = (status) => {
+          switch (status) {
+            case 'ASSIGNED':
+              return [
+                { status: 'SCHEDULED', label: 'Schedule Installation', variant: 'primary', icon: Calendar }
+              ];
+            case 'SCHEDULED':
+              return [
+                { status: 'INSTALLATION_STARTED', label: 'Start Installation', variant: 'primary', icon: Play }
+              ];
+            case 'INSTALLATION_STARTED':
+              return [
+                { status: 'IN_PROGRESS', label: 'Begin Installation Work', variant: 'primary', icon: Loader2 }
+              ];
+            case 'IN_PROGRESS':
+              return [
+                { status: 'CONTINUED_TOMORROW', label: 'Continue Tomorrow', variant: 'warning', icon: Clock },
+                { status: 'COMPLETED', label: 'Complete Installation', variant: 'success', icon: CheckCircle2, requirePhotos: true }
+              ];
+            case 'CONTINUED_TOMORROW':
+              return [
+                { status: 'RESUMED', label: 'Resume Installation', variant: 'primary', icon: Play }
+              ];
+            case 'RESUMED':
+              return [
+                { status: 'CONTINUED_TOMORROW', label: 'Continue Tomorrow', variant: 'warning', icon: Clock },
+                { status: 'COMPLETED', label: 'Complete Installation', variant: 'success', icon: CheckCircle2, requirePhotos: true }
+              ];
+            case 'COMPLETED':
+              return [
+                { status: 'AWAITING_CONFIRMATION', label: 'Request Customer Confirmation', variant: 'info', icon: ChevronRight }
+              ];
+            default:
+              return [];
+          }
+        };
+
+        const nextActions = getNextActions(selectedTask.status);
+
+        return (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            background: 'rgba(0,0,0,0.4)',
+            zIndex: 1000,
             display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden'
+            alignItems: 'center',
+            justifyContent: 'center',
+            backdropFilter: 'blur(4px)'
           }}>
-            {/* Modal Header */}
-            <div style={{ padding: '24px 32px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div>
-                <h3 style={{ fontSize: '20px', fontWeight: 800 }}>Installation Task #{selectedTask.id}</h3>
-                <p style={{ fontSize: '13px', color: 'var(--text-dim)', fontWeight: 600 }}>Execute service and document evidence.</p>
-              </div>
-              <button
-                onClick={() => setSelectedTask(null)}
-                style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', color: 'var(--text-dim)' }}
-              >
-                <X size={24} />
-              </button>
-            </div>
-
-            {/* Modal Content */}
-            <div style={{ padding: '32px', overflowY: 'auto', flex: 1 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px' }}>
-                {/* Left Side: Service Details & Status */}
+            <div className="animate-fade-in" style={{
+              width: '95%',
+              maxWidth: '1200px',
+              maxHeight: '90vh',
+              background: '#fff',
+              borderRadius: 'var(--radius-lg)',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)'
+            }}>
+              {/* Modal Header */}
+              <div style={{ padding: '24px 32px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <div style={{ marginBottom: '32px' }}>
-                    <h4 style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '16px', letterSpacing: '0.05em' }}>Service Actions</h4>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      {selectedTask.status === 'ASSIGNED' && (
-                        <button
-                          onClick={() => handleStatusUpdate(selectedTask.id, 'IN_PROGRESS')}
-                          style={{
-                            width: '100%',
-                            padding: '16px',
-                            background: 'var(--primary)',
-                            color: '#fff',
-                            borderRadius: 'var(--radius-md)',
-                            fontWeight: 800,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '10px'
-                          }}
-                        >
-                          <Play size={18} fill="currentColor" />
-                          Check In at Location
-                        </button>
-                      )}
-                      
-                      {selectedTask.status === 'IN_PROGRESS' && (
-                        <button
-                          onClick={() => handleStatusUpdate(selectedTask.id, 'COMPLETED')}
-                          disabled={!selectedTask.before_image || !selectedTask.after_image}
-                          style={{
-                            width: '100%',
-                            padding: '16px',
-                            background: (!selectedTask.before_image || !selectedTask.after_image) ? 'var(--bg-sub)' : '#10B981',
-                            color: (!selectedTask.before_image || !selectedTask.after_image) ? 'var(--text-dim)' : '#fff',
-                            borderRadius: 'var(--radius-md)',
-                            fontWeight: 800,
-                            cursor: (!selectedTask.before_image || !selectedTask.after_image) ? 'not-allowed' : 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '10px',
-                            border: '1px solid var(--border)'
-                          }}
-                        >
-                          <CheckCircle2 size={18} />
-                          Complete Installation
-                        </button>
-                      )}
-
-                      {selectedTask.status === 'COMPLETED' && (
-                        <div style={{
-                          padding: '16px',
-                          background: 'var(--bg-sub)',
-                          color: '#10B981',
-                          borderRadius: 'var(--radius-md)',
-                          fontWeight: 800,
-                          textAlign: 'center',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '10px',
-                          border: '1px solid var(--border)'
-                        }}>
-                          <CheckCircle2 size={18} />
-                          Service Verified
-                        </div>
-                      )}
-                    </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <h3 style={{ fontSize: '20px', fontWeight: 800 }}>Installation Task #{selectedTask.id}</h3>
+                    <StatusBadge status={selectedTask.status} />
                   </div>
-
-                  <div style={{ background: 'var(--bg-sub)', padding: '24px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
-                    <h5 style={{ fontWeight: 800, fontSize: '14px', marginBottom: '16px', textTransform: 'uppercase', color: 'var(--text-dim)' }}>Location & Logistics</h5>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      <div style={{ display: 'flex', gap: '12px' }}>
-                        <MapPin size={18} color="var(--primary)" style={{ flexShrink: 0 }} />
-                        <span style={{ fontWeight: 600, fontSize: '14px', lineHeight: 1.5 }}>{selectedTask.shipping_address}</span>
-                      </div>
-                      <div style={{ display: 'flex', gap: '12px' }}>
-                        <User size={18} color="var(--text-dim)" style={{ flexShrink: 0 }} />
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: '14px' }}>{selectedTask.customer_name}</div>
-                          <div style={{ fontSize: '12px', color: 'var(--text-dim)', fontWeight: 600 }}>{selectedTask.customer_phone}</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <p style={{ fontSize: '13px', color: 'var(--text-dim)', fontWeight: 600, marginTop: '4px' }}>Real-time service updates and tracking timeline.</p>
                 </div>
+                <button
+                  onClick={() => setSelectedTask(null)}
+                  style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', color: 'var(--text-dim)', cursor: 'pointer' }}
+                >
+                  <X size={24} />
+                </button>
+              </div>
 
-                {/* Right Side: Photo Evidence */}
-                <div>
-                  <h4 style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '20px', letterSpacing: '0.05em' }}>Visual Documentation</h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }}>
-                    {/* Before Image */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-main)', textTransform: 'uppercase' }}>1. Initial Setup (Before)</div>
-                      <label className="upload-box" style={{ height: '180px' }}>
-                        <input
-                          type="file"
-                          hidden
-                          accept="image/*"
-                          onChange={(e) => handleImageUpload(selectedTask.id, 'before_image', e.target.files[0])}
-                        />
-                        {(selectedTask.before_image_preview || selectedTask.before_image) ? (
-                          <img src={selectedTask.before_image_preview || selectedTask.before_image} alt="Before" />
-                        ) : (
-                          <div className="upload-label">
-                            <Camera size={26} />
-                            <span>Capture Site Setup</span>
-                          </div>
-                        )}
-                        {uploading && <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Loader2 className="animate-spin" color="var(--primary)" /></div>}
-                      </label>
-                    </div>
-
-                    {/* After Image */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-main)', textTransform: 'uppercase' }}>2. Finished Work (After)</div>
-                      <label className="upload-box" style={{ height: '180px' }}>
-                        <input
-                          type="file"
-                          hidden
-                          accept="image/*"
-                          onChange={(e) => handleImageUpload(selectedTask.id, 'after_image', e.target.files[0])}
-                        />
-                        {(selectedTask.after_image_preview || selectedTask.after_image) ? (
-                          <img src={selectedTask.after_image_preview || selectedTask.after_image} alt="After" />
-                        ) : (
-                          <div className="upload-label">
-                            <Camera size={26} />
-                            <span>Capture Result</span>
-                          </div>
-                        )}
-                        {uploading && <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Loader2 className="animate-spin" color="var(--primary)" /></div>}
-                      </label>
-                    </div>
-                  </div>
+              {/* Modal Content */}
+              <div style={{ padding: '32px', overflowY: 'auto', flex: 1 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '32px' }}>
                   
-                  {selectedTask.status === 'IN_PROGRESS' && (!selectedTask.before_image || !selectedTask.after_image) && (
-                    <div style={{ marginTop: '20px', display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-dim)', background: 'var(--bg-sub)', padding: '12px 16px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '13px', fontWeight: 600 }}>
-                      <AlertCircle size={14} color="var(--primary)" />
-                      Photos required to finalize task.
+                  {/* Column 1: Logistics & Actions */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    {/* Location & Customer Info */}
+                    <div style={{ background: 'var(--bg-sub)', padding: '24px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+                      <h5 style={{ fontWeight: 800, fontSize: '12px', marginBottom: '16px', textTransform: 'uppercase', color: 'var(--text-dim)', letterSpacing: '0.05em' }}>Location & Logistics</h5>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                          <MapPin size={18} color="var(--primary)" style={{ flexShrink: 0 }} />
+                          <span style={{ fontWeight: 600, fontSize: '14px', lineHeight: 1.5 }}>{selectedTask.shipping_address}</span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                          <User size={18} color="var(--text-dim)" style={{ flexShrink: 0 }} />
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: '14px' }}>{selectedTask.customer_name}</div>
+                            <div style={{ fontSize: '12px', color: 'var(--text-dim)', fontWeight: 600 }}>{selectedTask.customer_phone}</div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  )}
+
+                    {/* Action Buttons */}
+                    <div>
+                      <h4 style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '16px', letterSpacing: '0.05em' }}>Update Workflow Progress</h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {nextActions.length === 0 ? (
+                          <div style={{ padding: '16px', background: '#ECFDF5', color: '#059669', borderRadius: 'var(--radius-md)', border: '1px solid #A7F3D0', fontWeight: 700, fontSize: '14px', textAlign: 'center' }}>
+                            All updates completed. Awaiting admin review.
+                          </div>
+                        ) : (
+                          nextActions.map((act) => {
+                            const IconComponent = act.icon;
+                            const isPhotoRequiredAndMissing = act.requirePhotos && (!selectedTask.before_image || !selectedTask.after_image);
+                            
+                            return (
+                              <div key={act.status} style={{ width: '100%' }}>
+                                <button
+                                  onClick={() => handleStatusUpdate(selectedTask.id, act.status)}
+                                  disabled={isPhotoRequiredAndMissing || uploading}
+                                  style={{
+                                    width: '100%',
+                                    padding: '14px 20px',
+                                    background: isPhotoRequiredAndMissing ? 'var(--bg-sub)' : getButtonColor(act.variant).bg,
+                                    color: isPhotoRequiredAndMissing ? 'var(--text-dim)' : getButtonColor(act.variant).text,
+                                    borderRadius: 'var(--radius-md)',
+                                    fontWeight: 800,
+                                    cursor: isPhotoRequiredAndMissing ? 'not-allowed' : 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '10px',
+                                    border: '1px solid var(--border)',
+                                    transition: 'all 0.2s',
+                                    boxShadow: isPhotoRequiredAndMissing ? 'none' : '0 4px 6px rgba(0,0,0,0.05)'
+                                  }}
+                                >
+                                  <IconComponent size={18} />
+                                  {act.label}
+                                </button>
+                                {isPhotoRequiredAndMissing && (
+                                  <span style={{ fontSize: '11px', color: '#EF4444', fontWeight: 600, display: 'block', marginTop: '6px', textAlign: 'center' }}>
+                                    * Before & After photos are required to complete this action.
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Column 2: Photo Evidence */}
+                  <div>
+                    <h4 style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '20px', letterSpacing: '0.05em' }}>Visual Documentation</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }}>
+                      {/* Before Image */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-main)', textTransform: 'uppercase' }}>1. Initial Setup (Before)</div>
+                        <label className="upload-box" style={{ height: '170px', border: '2px dashed var(--border)', borderRadius: 'var(--radius-md)', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                          <input
+                            type="file"
+                            hidden
+                            accept="image/*"
+                            onChange={(e) => handleImageUpload(selectedTask.id, 'before_image', e.target.files[0])}
+                          />
+                          {(selectedTask.before_image_preview || selectedTask.before_image) ? (
+                            <img src={selectedTask.before_image_preview || selectedTask.before_image} alt="Before" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            <div className="upload-label" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', color: 'var(--text-dim)' }}>
+                              <Camera size={26} />
+                              <span style={{ fontSize: '12px', fontWeight: 700 }}>Capture Site Setup</span>
+                            </div>
+                          )}
+                          {uploading && <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Loader2 className="animate-spin" color="var(--primary)" /></div>}
+                        </label>
+                      </div>
+
+                      {/* After Image */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-main)', textTransform: 'uppercase' }}>2. Finished Work (After)</div>
+                        <label className="upload-box" style={{ height: '170px', border: '2px dashed var(--border)', borderRadius: 'var(--radius-md)', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                          <input
+                            type="file"
+                            hidden
+                            accept="image/*"
+                            onChange={(e) => handleImageUpload(selectedTask.id, 'after_image', e.target.files[0])}
+                          />
+                          {(selectedTask.after_image_preview || selectedTask.after_image) ? (
+                            <img src={selectedTask.after_image_preview || selectedTask.after_image} alt="After" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            <div className="upload-label" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', color: 'var(--text-dim)' }}>
+                              <Camera size={26} />
+                              <span style={{ fontSize: '12px', fontWeight: 700 }}>Capture Result</span>
+                            </div>
+                          )}
+                          {uploading && <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Loader2 className="animate-spin" color="var(--primary)" /></div>}
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Column 3: Live Progress Tracking Timeline */}
+                  <div style={{ borderLeft: '1px solid var(--border)', paddingLeft: '24px' }}>
+                    <h4 style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '20px', letterSpacing: '0.05em' }}>Tracking History Timeline</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0px', maxHeight: '380px', overflowY: 'auto', paddingRight: '8px' }}>
+                      {(!selectedTask.tracking_history || selectedTask.tracking_history.length === 0) ? (
+                        <div style={{ color: 'var(--text-dim)', fontSize: '13px', fontStyle: 'italic', padding: '12px' }}>
+                          No tracking timeline logs available yet.
+                        </div>
+                      ) : (
+                        <div style={{ position: 'relative', borderLeft: '2px solid var(--border)', marginLeft: '12px', paddingLeft: '20px' }}>
+                          {selectedTask.tracking_history.map((log, index) => {
+                            const c = getStatusColor(log.status);
+                            return (
+                              <div key={log.id || index} style={{ position: 'relative', marginBottom: '24px' }}>
+                                {/* Timeline Node Pin */}
+                                <div style={{
+                                  position: 'absolute',
+                                  left: '-29px',
+                                  top: '4px',
+                                  width: '16px',
+                                  height: '16px',
+                                  borderRadius: '50%',
+                                  background: '#fff',
+                                  border: `3px solid ${c.text}`,
+                                  boxShadow: '0 0 0 4px #fff'
+                                }}></div>
+                                <div>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                    <span style={{ fontWeight: 800, fontSize: '13px', color: '#111827' }}>
+                                      {log.status_display || c.label}
+                                    </span>
+                                    <span style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: 600 }}>
+                                      {new Date(log.created_at).toLocaleString()}
+                                    </span>
+                                  </div>
+                                  {log.notes && (
+                                    <p style={{
+                                      fontSize: '12px',
+                                      color: 'var(--text-dim)',
+                                      marginTop: '6px',
+                                      background: '#F9FAFB',
+                                      padding: '8px 12px',
+                                      borderRadius: '6px',
+                                      border: '1px solid var(--border)',
+                                      lineHeight: 1.4
+                                    }}>
+                                      {log.notes}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                 </div>
               </div>
-            </div>
 
-            {/* Modal Footer */}
-            <div style={{ padding: '20px 32px', background: '#F9FAFB', borderTop: '1px solid var(--border)', textAlign: 'right' }}>
-              <button
-                onClick={() => setSelectedTask(null)}
-                style={{ padding: '12px 28px', background: 'var(--text-main)', color: '#fff', borderRadius: 'var(--radius-sm)', fontWeight: 700 }}
-              >
-                Exit Management
-              </button>
+              {/* Modal Footer */}
+              <div style={{ padding: '20px 32px', background: '#F9FAFB', borderTop: '1px solid var(--border)', textAlign: 'right' }}>
+                <button
+                  onClick={() => setSelectedTask(null)}
+                  style={{ padding: '12px 28px', background: 'var(--text-main)', color: '#fff', borderRadius: 'var(--radius-sm)', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  Exit Management
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
+
     </div>
   );
 };
-
 export default Installations;

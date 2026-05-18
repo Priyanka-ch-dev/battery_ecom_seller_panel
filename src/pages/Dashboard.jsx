@@ -117,17 +117,17 @@ const Dashboard = () => {
           <h1 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '4px' }}>Dashboard Overview</h1>
           <p style={{ color: 'red', fontWeight: 600, fontSize: '13px' }}>Monitor your performance metrics.</p>
         </div>
-        <button 
+        <button
           onClick={fetchData}
           disabled={loading}
-          style={{ 
-            padding: '10px 20px', 
-            background: 'var(--text-main)', 
-            color: '#fff', 
-            borderRadius: 'var(--radius-sm)', 
-            border: 'none', 
-            fontWeight: 700, 
-            fontSize: '13px', 
+          style={{
+            padding: '10px 20px',
+            background: 'var(--text-main)',
+            color: '#fff',
+            borderRadius: 'var(--radius-sm)',
+            border: 'none',
+            fontWeight: 700,
+            fontSize: '13px',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -200,7 +200,7 @@ const Dashboard = () => {
           <h2 style={{ fontSize: '18px', fontWeight: 800 }}>Recent Orders</h2>
           {loading && <div style={{ fontSize: '12px', color: 'var(--primary)', fontWeight: 600 }}>Syncing with server...</div>}
         </div>
-        
+
         <div style={{
           background: '#fff',
           borderRadius: 'var(--radius-md)',

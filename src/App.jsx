@@ -25,6 +25,10 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
 
+  if (user?.status !== 'APPROVED') {
+    return <Navigate to="/login" replace />;
+  }
+
   return children;
 };
 

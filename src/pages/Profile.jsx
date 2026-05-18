@@ -11,7 +11,8 @@ import {
   AlertCircle,
   CheckCircle2,
   Loader2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Clock
 } from 'lucide-react';
 
 const Profile = () => {
@@ -222,15 +223,30 @@ const Profile = () => {
               />
             </div>
             <div className="input-group">
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '8px', color: 'var(--purple-main)' }}>Platform Commission (%)</label>
-              <div style={{ 
-                width: '100%', padding: '12px 16px', borderRadius: 'var(--radius-md)', 
-                background: 'rgba(111, 66, 193, 0.05)', border: '1px solid rgba(111, 66, 193, 0.2)',
-                fontSize: '15px', fontWeight: 800, color: 'var(--purple-main)', display: 'flex', alignItems: 'center', gap: '8px'
-              }}>
-                <Shield size={16} /> {profile.commission}%
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '8px', color: 'var(--purple-main)' }}>Platform Commission</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <div style={{ 
+                    width: '100%', padding: '12px 16px', borderRadius: 'var(--radius-md)', 
+                    background: 'rgba(111, 66, 193, 0.05)', border: '1px solid rgba(111, 66, 193, 0.2)',
+                    fontSize: '15px', fontWeight: 800, color: 'var(--purple-main)', display: 'flex', alignItems: 'center', gap: '8px'
+                  }}>
+                    <Shield size={16} /> {profile.commission}%
+                  </div>
+                  <p style={{ fontSize: '10px', color: 'var(--text-dim)', marginTop: '4px', fontWeight: 600 }}>Commission Rate</p>
+                </div>
+                <div>
+                  <div style={{ 
+                    width: '100%', padding: '12px 16px', borderRadius: 'var(--radius-md)', 
+                    background: 'rgba(111, 66, 193, 0.05)', border: '1px solid rgba(111, 66, 193, 0.2)',
+                    fontSize: '15px', fontWeight: 800, color: 'var(--purple-main)', display: 'flex', alignItems: 'center', gap: '8px'
+                  }}>
+                    ₹{profile.commission_amt}
+                  </div>
+                  <p style={{ fontSize: '10px', color: 'var(--text-dim)', marginTop: '4px', fontWeight: 600 }}>Fixed Amount</p>
+                </div>
               </div>
-              <p style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '4px', fontWeight: 600 }}>This is your current platform fee rate.</p>
+              <p style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '8px', fontWeight: 600 }}>This is your current platform fee structure.</p>
             </div>
           </div>
         </div>
@@ -282,6 +298,21 @@ const Profile = () => {
                 placeholder="HDFC0001234"
                 style={{ width: '100%', padding: '12px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-sub)' }}
               />
+            </div>
+            <div className="input-group">
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '8px', color: 'var(--text-main)' }}>Account Type</label>
+              <select
+                name="bank_account_type"
+                value={profile.bank_account_type || ''}
+                onChange={handleChange}
+                style={{ width: '100%', padding: '12px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-sub)', fontWeight: 600 }}
+              >
+                <option value="">Select Account Type</option>
+                <option value="Savings">Savings</option>
+                <option value="Current">Current</option>
+                <option value="Overdraft">Overdraft</option>
+                <option value="Others">Others</option>
+              </select>
             </div>
           </div>
         </div>

@@ -11,7 +11,8 @@ import {
   Loader2,
   X,
   ChevronRight,
-  Plus
+  Plus,
+  Play
 } from 'lucide-react';
 
 const Orders = () => {
@@ -30,6 +31,10 @@ const Orders = () => {
       // Handle both paginated and non-paginated responses
       const orderData = Array.isArray(response.data) ? response.data : response.data.results || [];
       setOrders(orderData);
+      if (selectedOrder) {
+        const updated = orderData.find(o => o.id === selectedOrder.id);
+        if (updated) setSelectedOrder(updated);
+      }
     } catch (error) {
       console.error('Failed to fetch orders', error);
     } finally {
@@ -77,14 +82,26 @@ const Orders = () => {
   };
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'PENDING': return { bg: '#FFFBEB', text: '#D97706', label: 'Pending' };
-      case 'IN_PROGRESS': return { bg: '#EFF6FF', text: '#2563EB', label: 'In Progress' };
-      case 'COMPLETED': return { bg: '#ECFDF5', text: '#059669', label: 'Completed' };
-      case 'SHIPPED': return { bg: '#F5F3FF', text: '#7C3AED', label: 'Shipped' };
-      case 'DELIVERED': return { bg: '#ECFDF5', text: '#059669', label: 'Delivered' };
-      default: return { bg: '#F3F4F6', text: '#6B7280', label: status };
-    }
+    const config = {
+      'ASSIGNED': { bg: '#EFF6FF', text: '#2563EB', label: 'Order Assigned' },
+      'SCHEDULED': { bg: '#F5F3FF', text: '#7C3AED', label: 'Scheduled' },
+      'INSTALLATION_STARTED': { bg: '#ECFDF5', text: '#10B981', label: 'Started' },
+      'IN_PROGRESS': { bg: '#FEF3C7', text: '#D97706', label: 'In Progress' },
+      'CONTINUED_TOMORROW': { bg: '#FFF5F5', text: '#E53E3E', label: 'Paused - Continued Tomorrow' },
+      'RESUMED': { bg: '#EBF8FF', text: '#3182CE', label: 'Resumed' },
+      'COMPLETED': { bg: '#ECFDF5', text: '#10B981', label: 'Completed' },
+      'AWAITING_CONFIRMATION': { bg: '#FEF3C7', text: '#D97706', label: 'Awaiting Customer' },
+      'VERIFIED': { bg: '#ECFDF5', text: '#10B981', label: 'Verified' },
+      'CLOSED': { bg: '#F3F4F6', text: '#6B7280', label: 'Closed Successfully' },
+      
+      // Legacy support
+      'PENDING': { bg: '#FFFBEB', text: '#D97706', label: 'Pending' },
+      'CONFIRMED': { bg: '#EFF6FF', text: '#2563EB', label: 'Confirmed' },
+      'SHIPPED': { bg: '#F5F3FF', text: '#7C3AED', label: 'Shipped' },
+      'OUT_FOR_DELIVERY': { bg: '#FEF3C7', text: '#D97706', label: 'Out for Delivery' },
+      'DELIVERED': { bg: '#ECFDF5', text: '#10B981', label: 'Delivered' },
+    };
+    return config[status] || { bg: '#F3F4F6', text: '#6B7280', label: status };
   };
 
   if (loading) {
@@ -211,180 +228,318 @@ const Orders = () => {
       </div>
 
       {/* Order Management Modal */}
-      {selectedOrder && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          background: 'rgba(0,0,0,0.4)',
-          zIndex: 1000,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backdropFilter: 'blur(4px)'
-        }}>
-          <div className="animate-fade-in" style={{
-            width: '90%',
-            maxWidth: '900px',
-            maxHeight: '90vh',
-            background: '#fff',
-            borderRadius: 'var(--radius-lg)',
+      {selectedOrder && (() => {
+        const StatusBadge = ({ status }) => {
+          const s = getStatusColor(status);
+          return (
+            <span style={{
+              padding: '6px 14px',
+              background: s.bg,
+              color: s.text,
+              borderRadius: '30px',
+              fontSize: '12px',
+              fontWeight: 800,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              border: '1px solid var(--border)'
+            }}>
+              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'currentColor' }}></div>
+              {s.label}
+            </span>
+          );
+        };
+
+        const getButtonColor = (variant) => {
+          switch (variant) {
+            case 'primary': return { bg: 'var(--primary)', text: '#fff' };
+            case 'success': return { bg: '#10B981', text: '#fff' };
+            case 'warning': return { bg: '#F59E0B', text: '#fff' };
+            case 'info': return { bg: '#3B82F6', text: '#fff' };
+            default: return { bg: 'var(--text-main)', text: '#fff' };
+          }
+        };
+
+        const getNextActions = (status) => {
+          switch (status) {
+            case 'ASSIGNED':
+              return [
+                { status: 'SCHEDULED', label: 'Schedule Installation', variant: 'primary', icon: Calendar }
+              ];
+            case 'SCHEDULED':
+              return [
+                { status: 'INSTALLATION_STARTED', label: 'Start Installation', variant: 'primary', icon: Play }
+              ];
+            case 'INSTALLATION_STARTED':
+              return [
+                { status: 'IN_PROGRESS', label: 'Begin Installation Work', variant: 'primary', icon: Loader2 }
+              ];
+            case 'IN_PROGRESS':
+              return [
+                { status: 'CONTINUED_TOMORROW', label: 'Continue Tomorrow', variant: 'warning', icon: Clock },
+                { status: 'COMPLETED', label: 'Complete Installation', variant: 'success', icon: CheckCircle2, requirePhotos: true }
+              ];
+            case 'CONTINUED_TOMORROW':
+              return [
+                { status: 'RESUMED', label: 'Resume Installation', variant: 'primary', icon: Play }
+              ];
+            case 'RESUMED':
+              return [
+                { status: 'CONTINUED_TOMORROW', label: 'Continue Tomorrow', variant: 'warning', icon: Clock },
+                { status: 'COMPLETED', label: 'Complete Installation', variant: 'success', icon: CheckCircle2, requirePhotos: true }
+              ];
+            case 'COMPLETED':
+              return [
+                { status: 'AWAITING_CONFIRMATION', label: 'Request Customer Confirmation', variant: 'info', icon: ChevronRight }
+              ];
+            default:
+              return [];
+          }
+        };
+
+        const nextActions = getNextActions(selectedOrder.status);
+
+        return (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            background: 'rgba(0,0,0,0.4)',
+            zIndex: 1000,
             display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden'
+            alignItems: 'center',
+            justifyContent: 'center',
+            backdropFilter: 'blur(4px)'
           }}>
-            {/* Modal Header */}
-            <div style={{ padding: '24px 32px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div>
-                <h3 style={{ fontSize: '20px', fontWeight: 800 }}>Manage Order #{selectedOrder.id}</h3>
-                <p style={{ fontSize: '13px', color: 'var(--text-dim)', fontWeight: 600 }}>Updating installation status and proof.</p>
-              </div>
-              <button
-                onClick={() => setSelectedOrder(null)}
-                style={{ width: '40px', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', color: 'var(--text-dim)' }}
-              >
-                <X size={24} />
-              </button>
-            </div>
-
-            {/* Modal Content */}
-            <div style={{ padding: '32px', overflowY: 'auto', flex: 1 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px' }}>
-                {/* Left Side: Info & Status */}
+            <div className="animate-fade-in" style={{
+              width: '95%',
+              maxWidth: '1200px',
+              maxHeight: '90vh',
+              background: '#fff',
+              borderRadius: 'var(--radius-lg)',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)'
+            }}>
+              {/* Modal Header */}
+              <div style={{ padding: '24px 32px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <div style={{ marginBottom: '32px' }}>
-                    <h4 style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '16px' }}>Status Transition</h4>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      <button
-                        onClick={() => updateStatus(selectedOrder.id, 'IN_PROGRESS')}
-                        disabled={selectedOrder.status === 'IN_PROGRESS' || selectedOrder.status === 'COMPLETED'}
-                        style={{
-                          width: '100%',
-                          padding: '14px',
-                          borderRadius: 'var(--radius-md)',
-                          border: '2px solid #007AFF',
-                          color: selectedOrder.status === 'IN_PROGRESS' ? '#fff' : '#007AFF',
-                          background: selectedOrder.status === 'IN_PROGRESS' ? '#007AFF' : 'transparent',
-                          fontWeight: 800,
-                          textAlign: 'left',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          opacity: selectedOrder.status === 'COMPLETED' ? 0.5 : 1
-                        }}
-                      >
-                        1. Start Installation
-                        {selectedOrder.status === 'IN_PROGRESS' && <CheckCircle2 size={18} />}
-                      </button>
-                      <button
-                        onClick={() => updateStatus(selectedOrder.id, 'COMPLETED')}
-                        disabled={selectedOrder.status !== 'IN_PROGRESS'}
-                        style={{
-                          width: '100%',
-                          padding: '14px',
-                          borderRadius: 'var(--radius-md)',
-                          border: '2px solid #34C759',
-                          color: selectedOrder.status === 'COMPLETED' ? '#fff' : '#34C759',
-                          background: selectedOrder.status === 'COMPLETED' ? '#34C759' : 'transparent',
-                          fontWeight: 800,
-                          textAlign: 'left',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between'
-                        }}
-                      >
-                        2. Mark as Completed
-                        {selectedOrder.status === 'COMPLETED' && <CheckCircle2 size={18} />}
-                      </button>
-                    </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <h3 style={{ fontSize: '20px', fontWeight: 800 }}>Manage Order #{selectedOrder.id}</h3>
+                    <StatusBadge status={selectedOrder.status} />
                   </div>
-
-                  <div style={{ background: '#F9FAFB', padding: '20px', borderRadius: 'var(--radius-md)' }}>
-                    <h5 style={{ fontWeight: 800, fontSize: '14px', marginBottom: '12px' }}>Customer & Location</h5>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      <div style={{ display: 'flex', gap: '10px', fontSize: '14px' }}>
-                        <MapPin size={16} color="var(--text-dim)" />
-                        <span style={{ fontWeight: 600 }}>{selectedOrder.shipping_address}</span>
-                      </div>
-                      <div style={{ display: 'flex', gap: '10px', fontSize: '14px' }}>
-                        <Package size={16} color="var(--text-dim)" />
-                        <span style={{ fontWeight: 600 }}>Items: {selectedOrder.items?.map(i => `${i.quantity}x ${i.product_detail?.name}`).join(', ')}</span>
-                      </div>
-                    </div>
-                  </div>
+                  <p style={{ fontSize: '13px', color: 'var(--text-dim)', fontWeight: 600, marginTop: '4px' }}>Real-time service updates and tracking timeline.</p>
                 </div>
+                <button
+                  onClick={() => setSelectedOrder(null)}
+                  style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', color: 'var(--text-dim)', cursor: 'pointer' }}
+                >
+                  <X size={24} />
+                </button>
+              </div>
 
-                {/* Right Side: Image Uploads */}
-                <div style={{ background: '#fff' }}>
-                  <h4 style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '20px' }}>Installation Evidence</h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }}>
-                    {/* Before Image */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)' }}>1. INITIAL SETUP (BEFORE)</div>
-                      <label className="upload-box">
-                        <input
-                          type="file"
-                          hidden
-                          accept="image/*"
-                          onChange={(e) => handleImageUpload(selectedOrder.id, 'before_image', e.target.files[0])}
-                        />
-                        {(selectedOrder.before_image_preview || selectedOrder.before_image) ? (
-                          <img src={selectedOrder.before_image_preview || selectedOrder.before_image} alt="Before" />
-                        ) : (
-                          <div className="upload-label">
-                            <Camera size={28} />
-                            <span>Capture Initial Setup</span>
+              {/* Modal Content */}
+              <div style={{ padding: '32px', overflowY: 'auto', flex: 1 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '32px' }}>
+                  
+                  {/* Column 1: Logistics & Actions */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    {/* Location & Customer Info */}
+                    <div style={{ background: 'var(--bg-sub)', padding: '24px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+                      <h5 style={{ fontWeight: 800, fontSize: '12px', marginBottom: '16px', textTransform: 'uppercase', color: 'var(--text-dim)', letterSpacing: '0.05em' }}>Location & Logistics</h5>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                          <MapPin size={18} color="var(--primary)" style={{ flexShrink: 0 }} />
+                          <span style={{ fontWeight: 600, fontSize: '14px', lineHeight: 1.5 }}>{selectedOrder.shipping_address}</span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                          <User size={18} color="var(--text-dim)" style={{ flexShrink: 0 }} />
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: '14px' }}>{selectedOrder.customer_name}</div>
+                            <div style={{ fontSize: '12px', color: 'var(--text-dim)', fontWeight: 600 }}>{selectedOrder.customer_phone}</div>
                           </div>
-                        )}
-                        {uploading && <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Loader2 className="animate-spin" color="var(--primary)" /></div>}
-                      </label>
+                        </div>
+                      </div>
                     </div>
 
-                    {/* After Image */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)' }}>2. COMPLETED WORK (AFTER)</div>
-                      <label className="upload-box">
-                        <input
-                          type="file"
-                          hidden
-                          accept="image/*"
-                          onChange={(e) => handleImageUpload(selectedOrder.id, 'after_image', e.target.files[0])}
-                        />
-                        {(selectedOrder.after_image_preview || selectedOrder.after_image) ? (
-                          <img src={selectedOrder.after_image_preview || selectedOrder.after_image} alt="After" />
-                        ) : (
-                          <div className="upload-label">
-                            <Camera size={28} />
-                            <span>Capture Finished Result</span>
+                    {/* Action Buttons */}
+                    <div>
+                      <h4 style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '16px', letterSpacing: '0.05em' }}>Update Workflow Progress</h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {nextActions.length === 0 ? (
+                          <div style={{ padding: '16px', background: '#ECFDF5', color: '#059669', borderRadius: 'var(--radius-md)', border: '1px solid #A7F3D0', fontWeight: 700, fontSize: '14px', textAlign: 'center' }}>
+                            All updates completed. Awaiting admin review.
                           </div>
+                        ) : (
+                          nextActions.map((act) => {
+                            const IconComponent = act.icon;
+                            const isPhotoRequiredAndMissing = act.requirePhotos && (!selectedOrder.before_image || !selectedOrder.after_image);
+                            
+                            return (
+                              <div key={act.status} style={{ width: '100%' }}>
+                                <button
+                                  onClick={() => updateStatus(selectedOrder.id, act.status)}
+                                  disabled={isPhotoRequiredAndMissing || uploading}
+                                  style={{
+                                    width: '100%',
+                                    padding: '14px 20px',
+                                    background: isPhotoRequiredAndMissing ? 'var(--bg-sub)' : getButtonColor(act.variant).bg,
+                                    color: isPhotoRequiredAndMissing ? 'var(--text-dim)' : getButtonColor(act.variant).text,
+                                    borderRadius: 'var(--radius-md)',
+                                    fontWeight: 800,
+                                    cursor: isPhotoRequiredAndMissing ? 'not-allowed' : 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '10px',
+                                    border: '1px solid var(--border)',
+                                    transition: 'all 0.2s',
+                                    boxShadow: isPhotoRequiredAndMissing ? 'none' : '0 4px 6px rgba(0,0,0,0.05)'
+                                  }}
+                                >
+                                  <IconComponent size={18} />
+                                  {act.label}
+                                </button>
+                                {isPhotoRequiredAndMissing && (
+                                  <span style={{ fontSize: '11px', color: '#EF4444', fontWeight: 600, display: 'block', marginTop: '6px', textAlign: 'center' }}>
+                                    * Before & After photos are required to complete this action.
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })
                         )}
-                        {uploading && <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Loader2 className="animate-spin" color="var(--primary)" /></div>}
-                      </label>
+                      </div>
                     </div>
                   </div>
-                  <div style={{ marginTop: '24px', padding: '16px', background: 'var(--bg-sub)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-                    <p style={{ fontSize: '12px', color: 'var(--text-dim)', fontWeight: 600, lineHeight: 1.6 }}>
-                      <strong>Note:</strong> Photos are required for quality assurance. Ensure the battery and connections are clearly visible.
-                    </p>
+
+                  {/* Column 2: Photo Evidence */}
+                  <div>
+                    <h4 style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '20px', letterSpacing: '0.05em' }}>Visual Documentation</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }}>
+                      {/* Before Image */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-main)', textTransform: 'uppercase' }}>1. Initial Setup (Before)</div>
+                        <label className="upload-box" style={{ height: '170px', border: '2px dashed var(--border)', borderRadius: 'var(--radius-md)', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                          <input
+                            type="file"
+                            hidden
+                            accept="image/*"
+                            onChange={(e) => handleImageUpload(selectedOrder.id, 'before_image', e.target.files[0])}
+                          />
+                          {(selectedOrder.before_image_preview || selectedOrder.before_image) ? (
+                            <img src={selectedOrder.before_image_preview || selectedOrder.before_image} alt="Before" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            <div className="upload-label" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', color: 'var(--text-dim)' }}>
+                              <Camera size={26} />
+                              <span style={{ fontSize: '12px', fontWeight: 700 }}>Capture Site Setup</span>
+                            </div>
+                          )}
+                          {uploading && <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Loader2 className="animate-spin" color="var(--primary)" /></div>}
+                        </label>
+                      </div>
+
+                      {/* After Image */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-main)', textTransform: 'uppercase' }}>2. Finished Work (After)</div>
+                        <label className="upload-box" style={{ height: '170px', border: '2px dashed var(--border)', borderRadius: 'var(--radius-md)', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                          <input
+                            type="file"
+                            hidden
+                            accept="image/*"
+                            onChange={(e) => handleImageUpload(selectedOrder.id, 'after_image', e.target.files[0])}
+                          />
+                          {(selectedOrder.after_image_preview || selectedOrder.after_image) ? (
+                            <img src={selectedOrder.after_image_preview || selectedOrder.after_image} alt="After" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            <div className="upload-label" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', color: 'var(--text-dim)' }}>
+                              <Camera size={26} />
+                              <span style={{ fontSize: '12px', fontWeight: 700 }}>Capture Result</span>
+                            </div>
+                          )}
+                          {uploading && <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Loader2 className="animate-spin" color="var(--primary)" /></div>}
+                        </label>
+                      </div>
+                    </div>
                   </div>
+
+                  {/* Column 3: Live Progress Tracking Timeline */}
+                  <div style={{ borderLeft: '1px solid var(--border)', paddingLeft: '24px' }}>
+                    <h4 style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '20px', letterSpacing: '0.05em' }}>Tracking History Timeline</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0px', maxHeight: '380px', overflowY: 'auto', paddingRight: '8px' }}>
+                      {(!selectedOrder.tracking_history || selectedOrder.tracking_history.length === 0) ? (
+                        <div style={{ color: 'var(--text-dim)', fontSize: '13px', fontStyle: 'italic', padding: '12px' }}>
+                          No tracking timeline logs available yet.
+                        </div>
+                      ) : (
+                        <div style={{ position: 'relative', borderLeft: '2px solid var(--border)', marginLeft: '12px', paddingLeft: '20px' }}>
+                          {selectedOrder.tracking_history.map((log, index) => {
+                            const c = getStatusColor(log.status);
+                            return (
+                              <div key={log.id || index} style={{ position: 'relative', marginBottom: '24px' }}>
+                                {/* Timeline Node Pin */}
+                                <div style={{
+                                  position: 'absolute',
+                                  left: '-29px',
+                                  top: '4px',
+                                  width: '16px',
+                                  height: '16px',
+                                  borderRadius: '50%',
+                                  background: '#fff',
+                                  border: `3px solid ${c.text}`,
+                                  boxShadow: '0 0 0 4px #fff'
+                                }}></div>
+                                <div>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                    <span style={{ fontWeight: 800, fontSize: '13px', color: '#111827' }}>
+                                      {log.status_display || c.label}
+                                    </span>
+                                    <span style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: 600 }}>
+                                      {new Date(log.created_at).toLocaleString()}
+                                    </span>
+                                  </div>
+                                  {log.notes && (
+                                    <p style={{
+                                      fontSize: '12px',
+                                      color: 'var(--text-dim)',
+                                      marginTop: '6px',
+                                      background: '#F9FAFB',
+                                      padding: '8px 12px',
+                                      borderRadius: '6px',
+                                      border: '1px solid var(--border)',
+                                      lineHeight: 1.4
+                                    }}>
+                                      {log.notes}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                 </div>
               </div>
-            </div>
 
-            {/* Modal Footer */}
-            <div style={{ padding: '20px 32px', background: '#F9FAFB', borderTop: '1px solid var(--border)', textAlign: 'right' }}>
-              <button
-                onClick={() => setSelectedOrder(null)}
-                style={{ padding: '12px 24px', background: '#000', color: '#fff', borderRadius: 'var(--radius-sm)', fontWeight: 700 }}
-              >
-                Close View
-              </button>
+              {/* Modal Footer */}
+              <div style={{ padding: '20px 32px', background: '#F9FAFB', borderTop: '1px solid var(--border)', textAlign: 'right' }}>
+                <button
+                  onClick={() => setSelectedOrder(null)}
+                  style={{ padding: '12px 28px', background: 'var(--text-main)', color: '#fff', borderRadius: 'var(--radius-sm)', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  Exit Management
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };
