@@ -49,6 +49,14 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+  
+  // Phone Verification State
+  const [isPhoneVerified, setIsPhoneVerified] = useState(false);
+  const [showOtpInput, setShowOtpInput] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [phoneError, setPhoneError] = useState(null);
+  
   const navigate = useNavigate();
 
   const handleInputChange = (e) => {
@@ -63,8 +71,54 @@ const Register = () => {
     }
   };
 
+  const handleRequestOtp = async (e) => {
+    e.preventDefault();
+    if (!formData.phone_number || formData.phone_number.length < 10) {
+      setPhoneError('Please enter a valid phone number.');
+      return;
+    }
+    setOtpLoading(true);
+    setPhoneError(null);
+    try {
+      await api.post('otp/request/', {
+        phone_number: formData.phone_number,
+        purpose: 'REGISTER'
+      });
+      setShowOtpInput(true);
+    } catch (err) {
+      setPhoneError(err.response?.data?.error || 'Failed to send OTP.');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    setOtpLoading(true);
+    setPhoneError(null);
+    try {
+      await api.post('otp/verify/', {
+        phone_number: formData.phone_number,
+        otp_code: otpCode,
+        purpose: 'REGISTER'
+      });
+      setIsPhoneVerified(true);
+      setShowOtpInput(false);
+    } catch (err) {
+      setPhoneError(err.response?.data?.error || 'Invalid OTP. Please try again.');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!isPhoneVerified) {
+      setError('Please verify your phone number first.');
+      return;
+    }
+    
     setLoading(true);
     setError(null);
 
@@ -159,7 +213,137 @@ const Register = () => {
         )}
 
         <form onSubmit={handleSubmit}>
-          <div style={{ display: 'grid', gridTemplateColumns: role === 'SELLER' ? '1fr 1fr' : '1fr', gap: '40px' }}>
+          
+          {/* Phone Verification Section */}
+          <div style={{ marginBottom: '40px', padding: '24px', background: 'var(--bg-sub)', borderRadius: 'var(--radius-md)' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+              <Phone size={18} color="var(--primary)" /> Phone Verification
+            </h3>
+            
+            {!isPhoneVerified ? (
+              <div>
+                <p style={{ fontSize: '14px', color: 'var(--text-dim)', marginBottom: '16px' }}>
+                  For security purposes, please verify your mobile number before proceeding.
+                </p>
+                
+                {phoneError && (
+                  <div style={{ padding: '12px', background: '#FFF1F0', color: '#CF1322', borderRadius: '8px', fontSize: '14px', marginBottom: '20px', fontWeight: 600 }}>
+                    {phoneError}
+                  </div>
+                )}
+
+                {!showOtpInput ? (
+                  <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end' }}>
+                    <Input 
+                      label="Phone Number" 
+                      name="phone_number" 
+                      value={formData.phone_number} 
+                      onChange={handleInputChange} 
+                      icon={Phone} 
+                      required 
+                      placeholder="+91 XXXXX XXXXX" 
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRequestOtp}
+                      disabled={otpLoading || !formData.phone_number}
+                      style={{
+                        height: '42px',
+                        padding: '0 24px',
+                        background: 'var(--primary)',
+                        color: '#fff',
+                        borderRadius: 'var(--radius-sm)',
+                        fontWeight: 700,
+                        border: 'none',
+                        cursor: (otpLoading || !formData.phone_number) ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}
+                    >
+                      {otpLoading ? <Loader2 className="animate-spin" size={18} /> : 'Send OTP'}
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '400px' }}>
+                    <div style={{ padding: '12px', background: '#F0FDF4', color: '#166534', borderRadius: '8px', fontSize: '13px', fontWeight: 600 }}>
+                      OTP sent to {formData.phone_number}.
+                    </div>
+                    <input 
+                      type="text" 
+                      required
+                      maxLength={6}
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value)}
+                      placeholder="Enter 6-digit OTP"
+                      style={{ 
+                        width: '100%',
+                        padding: '14px',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--border)',
+                        fontSize: '18px',
+                        textAlign: 'center',
+                        letterSpacing: '4px',
+                        fontWeight: 700,
+                        outline: 'none'
+                      }}
+                    />
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setShowOtpInput(false)}
+                        style={{
+                          flex: 1,
+                          padding: '12px',
+                          background: '#F3F4F6',
+                          color: 'var(--text-main)',
+                          borderRadius: 'var(--radius-md)',
+                          fontWeight: 700,
+                          border: 'none',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Change Number
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleVerifyOtp}
+                        disabled={otpLoading || otpCode.length !== 6}
+                        style={{
+                          flex: 2,
+                          padding: '12px',
+                          background: '#10B981',
+                          color: '#fff',
+                          borderRadius: 'var(--radius-md)',
+                          fontWeight: 700,
+                          border: 'none',
+                          cursor: (otpLoading || otpCode.length !== 6) ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px'
+                        }}
+                      >
+                        {otpLoading ? <Loader2 className="animate-spin" size={18} /> : 'Verify OTP'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 'var(--radius-md)' }}>
+                <div style={{ width: '40px', height: '40px', background: '#DCFCE7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <CheckCircle2 color="#16A34A" size={24} />
+                </div>
+                <div>
+                  <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#166534', margin: 0 }}>Phone Verified</h4>
+                  <p style={{ fontSize: '13px', color: '#15803D', margin: 0, marginTop: '2px' }}>{formData.phone_number}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: role === 'SELLER' ? '1fr 1fr' : '1fr', gap: '40px', opacity: isPhoneVerified ? 1 : 0.5, pointerEvents: isPhoneVerified ? 'auto' : 'none', transition: 'all 0.3s' }}>
             
             {/* Basic Info */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -175,7 +359,6 @@ const Register = () => {
                <Input label="Username" name="username" value={formData.username} onChange={handleInputChange} icon={User} required />
                <Input label="Email Address" name="email" type="email" value={formData.email} onChange={handleInputChange} icon={Mail} required />
                <Input label="Password" name="password" type="password" value={formData.password} onChange={handleInputChange} icon={Lock} required />
-               <Input label="Phone Number" name="phone_number" value={formData.phone_number} onChange={handleInputChange} icon={Phone} required />
                
                {role === 'CUSTOMER' && (
                   <Input label="Business Name (Optional)" name="business_name" value={formData.business_name} onChange={handleInputChange} icon={Building2} />
@@ -225,7 +408,7 @@ const Register = () => {
 
           {/* Seller Documents */}
           {role === 'SELLER' && (
-            <div style={{ marginTop: '40px', padding: '32px', background: 'var(--bg-sub)', borderRadius: 'var(--radius-lg)' }}>
+            <div style={{ marginTop: '40px', padding: '32px', background: 'var(--bg-sub)', borderRadius: 'var(--radius-lg)', opacity: isPhoneVerified ? 1 : 0.5, pointerEvents: isPhoneVerified ? 'auto' : 'none', transition: 'all 0.3s' }}>
                <h3 style={{ fontSize: '16px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
                   <Upload size={18} color="var(--primary)" /> Document Uploads
                </h3>

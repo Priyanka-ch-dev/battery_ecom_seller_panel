@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
+import { useAuth } from '../context/AuthContext';
 import {
   Shield,
   ShieldCheck,
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react';
 
 const Profile = () => {
+  const { updateUser } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -26,6 +28,11 @@ const Profile = () => {
       setLoading(true);
       const res = await api.get('sellers/profiles/me/');
       setProfile(res.data);
+      // Sync the user status/approval state in AuthContext
+      updateUser({
+        status: res.data.status,
+        has_been_approved: res.data.has_been_approved
+      });
     } catch (err) {
       console.error('Failed to fetch profile:', err);
       setMessage({ type: 'error', text: 'Failed to load profile details.' });
@@ -65,11 +72,16 @@ const Profile = () => {
         }
       });
 
-      await api.patch('sellers/profiles/me/', formData, {
+      const res = await api.patch('sellers/profiles/me/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
       setMessage({ type: 'success', text: 'Profile details submitted for verification successfully!' });
+      // Sync the user status/approval state in AuthContext immediately after patch
+      updateUser({
+        status: res.data.status,
+        has_been_approved: res.data.has_been_approved
+      });
       fetchProfile();
     } catch (err) {
       console.error('Failed to save profile:', err);
@@ -158,6 +170,35 @@ const Profile = () => {
           <div>
             <div style={{ fontWeight: 800, fontSize: '15px' }}>Verified Account</div>
             <p style={{ fontSize: '13px', fontWeight: 600, opacity: 0.8 }}>Your documents have been verified. You can still update details if needed, but major changes might trigger a re-verification process.</p>
+          </div>
+        </div>
+      )}
+
+      {profile.status !== 'APPROVED' && (
+        <div style={{
+          padding: '20px',
+          background: profile.status === 'REJECTED' ? '#FEF2F2' : '#FFFBEB',
+          color: profile.status === 'REJECTED' ? '#991B1B' : '#92400E',
+          borderRadius: 'var(--radius-md)',
+          marginBottom: '32px',
+          display: 'flex',
+          gap: '16px',
+          border: `1px solid ${profile.status === 'REJECTED' ? '#EF444430' : '#F59E0B30'}`
+        }}>
+          <AlertCircle size={24} style={{ flexShrink: 0 }} />
+          <div>
+            <div style={{ fontWeight: 800, fontSize: '15px' }}>
+              {profile.status === 'REJECTED' ? 'Application Rejected' : 'Verification Under Review'}
+            </div>
+            <p style={{ fontSize: '14px', fontWeight: 600, marginTop: '4px', lineHeight: '1.5' }}>
+              {profile.status === 'REJECTED' ? (
+                "Your seller account has been rejected by the administrator. Please update your details and resubmit."
+              ) : profile.has_been_approved ? (
+                "Your profile changes are under admin review. Access to seller features will be restored after approval."
+              ) : (
+                "Your seller account is currently under admin review. Access to the Seller Dashboard will be enabled once your account has been approved."
+              )}
+            </p>
           </div>
         </div>
       )}

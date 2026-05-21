@@ -64,6 +64,8 @@ const Installations = () => {
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [deliveryOtp, setDeliveryOtp] = useState('');
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
 
   const fetchTasks = async () => {
     try {
@@ -92,6 +94,24 @@ const Installations = () => {
       fetchTasks();
     } catch (error) {
       alert(error.response?.data?.error || 'Failed to update status.');
+    }
+  };
+
+  const handleVerifyDeliveryOtp = async (taskId) => {
+    if (!deliveryOtp || deliveryOtp.length !== 6) {
+      alert("Please enter a valid 6-digit OTP.");
+      return;
+    }
+    try {
+      setVerifyingOtp(true);
+      await api.post(`orders/${taskId}/verify_delivery_otp/`, { otp_code: deliveryOtp });
+      setDeliveryOtp('');
+      fetchTasks();
+      alert("Delivery verified successfully!");
+    } catch (error) {
+      alert(error.response?.data?.error || 'Invalid OTP. Please try again.');
+    } finally {
+      setVerifyingOtp(false);
     }
   };
 
@@ -251,9 +271,7 @@ const Installations = () => {
                 { status: 'COMPLETED', label: 'Complete Installation', variant: 'success', icon: CheckCircle2, requirePhotos: true }
               ];
             case 'COMPLETED':
-              return [
-                { status: 'AWAITING_CONFIRMATION', label: 'Request Customer Confirmation', variant: 'info', icon: ChevronRight }
-              ];
+              return []; // Handled separately by OTP Input UI
             default:
               return [];
           }
@@ -373,6 +391,40 @@ const Installations = () => {
                               </div>
                             );
                           })
+                        )}
+
+                        {selectedTask.status === 'COMPLETED' && (
+                          <div style={{ marginTop: '10px', background: '#F0FDF4', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid #BBF7D0' }}>
+                            <h5 style={{ fontSize: '13px', fontWeight: 800, color: '#166534', marginBottom: '8px' }}>Customer Delivery OTP</h5>
+                            <p style={{ fontSize: '12px', color: '#15803D', marginBottom: '12px', lineHeight: 1.4 }}>
+                              An OTP has been sent to the customer's registered mobile number. Please collect and verify it to close this job.
+                            </p>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <input 
+                                type="text"
+                                placeholder="Enter 6-digit OTP"
+                                value={deliveryOtp}
+                                onChange={(e) => setDeliveryOtp(e.target.value)}
+                                maxLength={6}
+                                style={{ flex: 1, padding: '10px 14px', borderRadius: '8px', border: '1px solid #BBF7D0', fontSize: '14px', fontWeight: 700, outline: 'none' }}
+                              />
+                              <button 
+                                onClick={() => handleVerifyDeliveryOtp(selectedTask.id)}
+                                disabled={verifyingOtp || deliveryOtp.length !== 6}
+                                style={{
+                                  background: verifyingOtp || deliveryOtp.length !== 6 ? '#86EFAC' : '#16A34A',
+                                  color: '#fff',
+                                  border: 'none',
+                                  padding: '0 20px',
+                                  borderRadius: '8px',
+                                  fontWeight: 800,
+                                  cursor: verifyingOtp || deliveryOtp.length !== 6 ? 'not-allowed' : 'pointer'
+                                }}
+                              >
+                                {verifyingOtp ? <Loader2 size={18} className="animate-spin" /> : 'Verify'}
+                              </button>
+                            </div>
+                          </div>
                         )}
                       </div>
                     </div>

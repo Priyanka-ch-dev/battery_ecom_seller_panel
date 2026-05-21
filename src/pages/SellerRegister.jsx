@@ -54,6 +54,14 @@ const SellerRegister = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+  
+  // Phone Verification State
+  const [isPhoneVerified, setIsPhoneVerified] = useState(false);
+  const [showOtpInput, setShowOtpInput] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [phoneError, setPhoneError] = useState(null);
+  
   const navigate = useNavigate();
 
   const handleInputChange = (e) => {
@@ -68,22 +76,63 @@ const SellerRegister = () => {
     }
   };
 
+  const handleRequestOtp = async (e) => {
+    e.preventDefault();
+    if (!formData.phone_number || formData.phone_number.length < 10) {
+      setPhoneError('Please enter a valid phone number.');
+      return;
+    }
+    setOtpLoading(true);
+    setPhoneError(null);
+    try {
+      await api.post('otp/request/', {
+        phone_number: formData.phone_number,
+        purpose: 'REGISTER'
+      });
+      setShowOtpInput(true);
+    } catch (err) {
+      setPhoneError(err.response?.data?.error || 'Failed to send OTP.');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    setOtpLoading(true);
+    setPhoneError(null);
+    try {
+      const res = await api.post('otp/verify/', {
+        phone_number: formData.phone_number,
+        otp_code: otpCode,
+        purpose: 'REGISTER'
+      });
+      setIsPhoneVerified(true);
+      setShowOtpInput(false);
+    } catch (err) {
+      setPhoneError(err.response?.data?.error || 'Invalid OTP. Please try again.');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!isPhoneVerified) {
+      setError('Please verify your phone number first.');
+      return;
+    }
+    
     setLoading(true);
     setError(null);
 
     try {
       const data = new FormData();
-      // Append all form data
       Object.entries(formData).forEach(([key, value]) => {
         if (value) data.append(key, value);
       });
-      
-      // Hardcode role as SELLER
       data.append('role', 'SELLER');
-
-      // Append files
       Object.entries(files).forEach(([key, value]) => {
         if (value) data.append(key, value);
       });
@@ -100,7 +149,6 @@ const SellerRegister = () => {
       console.error('Registration failed:', err);
       const errorData = err.response?.data;
       if (typeof errorData === 'object') {
-        // Flatten error object for display
         const errorMessages = Object.entries(errorData)
           .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
           .join(' | ');
@@ -127,7 +175,7 @@ const SellerRegister = () => {
           </div>
           <h1 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '16px', color: 'var(--text-main)' }}>Registration Successful!</h1>
           <p style={{ color: 'var(--text-dim)', marginBottom: '32px', fontSize: '16px', lineHeight: '1.6' }}>
-            Your seller application has been received and is pending admin approval. You'll be redirected to the login page shortly.
+            Your seller application has been received and verified. It is now pending admin approval. You'll be redirected to the login page shortly.
           </p>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', color: 'var(--primary)', fontWeight: 700 }}>
              <Loader2 className="animate-spin" size={20} />
@@ -161,24 +209,151 @@ const SellerRegister = () => {
         <form onSubmit={handleSubmit}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
             
-            {/* 1. Personal Details */}
-            <Section title="Personal Details" icon={User} delay={0.1}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
-                <Input label="First Name" name="first_name" value={formData.first_name} onChange={handleInputChange} required placeholder="Enter first name" />
-                <Input label="Last Name" name="last_name" value={formData.last_name} onChange={handleInputChange} required placeholder="Enter last name" />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginTop: '20px' }}>
-                <Input label="Username" name="username" value={formData.username} onChange={handleInputChange} icon={User} required placeholder="Choose a username" />
-                <Input label="Email Address" name="email" type="email" value={formData.email} onChange={handleInputChange} icon={Mail} required placeholder="email@example.com" />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginTop: '20px' }}>
-                <Input label="Password" name="password" type="password" value={formData.password} onChange={handleInputChange} icon={Lock} required placeholder="••••••••" />
-                <Input label="Phone Number" name="phone_number" value={formData.phone_number} onChange={handleInputChange} icon={Phone} required placeholder="+91 XXXXX XXXXX" />
-              </div>
+            {/* Phone Verification Section */}
+            <Section title="1. Phone Verification" icon={Phone} delay={0.05}>
+              {!isPhoneVerified ? (
+                <div>
+                  <p style={{ fontSize: '14px', color: 'var(--text-dim)', marginBottom: '16px' }}>
+                    For security purposes, please verify your mobile number before proceeding.
+                  </p>
+                  
+                  {phoneError && (
+                    <div style={{ padding: '12px', background: '#FFF1F0', color: '#CF1322', borderRadius: '8px', fontSize: '14px', marginBottom: '20px', fontWeight: 600 }}>
+                      {phoneError}
+                    </div>
+                  )}
+
+                  {!showOtpInput ? (
+                    <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end' }}>
+                      <Input 
+                        label="Phone Number" 
+                        name="phone_number" 
+                        value={formData.phone_number} 
+                        onChange={handleInputChange} 
+                        icon={Phone} 
+                        required 
+                        placeholder="+91 XXXXX XXXXX" 
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRequestOtp}
+                        disabled={otpLoading || !formData.phone_number}
+                        style={{
+                          height: '50px',
+                          padding: '0 24px',
+                          background: 'var(--primary)',
+                          color: '#fff',
+                          borderRadius: 'var(--radius-md)',
+                          fontWeight: 700,
+                          border: 'none',
+                          cursor: (otpLoading || !formData.phone_number) ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}
+                      >
+                        {otpLoading ? <Loader2 className="animate-spin" size={18} /> : 'Send OTP'}
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '400px' }}>
+                      <div style={{ padding: '12px', background: '#F0FDF4', color: '#166534', borderRadius: '8px', fontSize: '13px', fontWeight: 600 }}>
+                        OTP sent to {formData.phone_number}.
+                      </div>
+                      <input 
+                        type="text" 
+                        required
+                        maxLength={6}
+                        value={otpCode}
+                        onChange={(e) => setOtpCode(e.target.value)}
+                        placeholder="Enter 6-digit OTP"
+                        style={{ 
+                          width: '100%',
+                          padding: '14px',
+                          borderRadius: 'var(--radius-md)',
+                          border: '1px solid var(--border)',
+                          fontSize: '18px',
+                          textAlign: 'center',
+                          letterSpacing: '4px',
+                          fontWeight: 700,
+                          outline: 'none'
+                        }}
+                      />
+                      <div style={{ display: 'flex', gap: '12px' }}>
+                        <button
+                          type="button"
+                          onClick={() => setShowOtpInput(false)}
+                          style={{
+                            flex: 1,
+                            padding: '12px',
+                            background: '#F3F4F6',
+                            color: 'var(--text-main)',
+                            borderRadius: 'var(--radius-md)',
+                            fontWeight: 700,
+                            border: 'none',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Change Number
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleVerifyOtp}
+                          disabled={otpLoading || otpCode.length !== 6}
+                          style={{
+                            flex: 2,
+                            padding: '12px',
+                            background: '#10B981',
+                            color: '#fff',
+                            borderRadius: 'var(--radius-md)',
+                            fontWeight: 700,
+                            border: 'none',
+                            cursor: (otpLoading || otpCode.length !== 6) ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px'
+                          }}
+                        >
+                          {otpLoading ? <Loader2 className="animate-spin" size={18} /> : 'Verify OTP'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 'var(--radius-md)' }}>
+                  <div style={{ width: '40px', height: '40px', background: '#DCFCE7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <CheckCircle2 color="#16A34A" size={24} />
+                  </div>
+                  <div>
+                    <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#166534', margin: 0 }}>Phone Verified</h4>
+                    <p style={{ fontSize: '13px', color: '#15803D', margin: 0, marginTop: '2px' }}>{formData.phone_number}</p>
+                  </div>
+                </div>
+              )}
             </Section>
 
-            {/* 2. Business Details */}
-            <Section title="Business Details" icon={Briefcase} delay={0.2}>
+            {/* 2. Personal Details */}
+            <div style={{ opacity: isPhoneVerified ? 1 : 0.5, pointerEvents: isPhoneVerified ? 'auto' : 'none', transition: 'all 0.3s' }}>
+              <Section title="2. Personal Details" icon={User} delay={0.1}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
+                  <Input label="First Name" name="first_name" value={formData.first_name} onChange={handleInputChange} required placeholder="Enter first name" />
+                  <Input label="Last Name" name="last_name" value={formData.last_name} onChange={handleInputChange} required placeholder="Enter last name" />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginTop: '20px' }}>
+                  <Input label="Username" name="username" value={formData.username} onChange={handleInputChange} icon={User} required placeholder="Choose a username" />
+                  <Input label="Email Address" name="email" type="email" value={formData.email} onChange={handleInputChange} icon={Mail} required placeholder="email@example.com" />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginTop: '20px' }}>
+                  <Input label="Password" name="password" type="password" value={formData.password} onChange={handleInputChange} icon={Lock} required placeholder="••••••••" />
+                </div>
+              </Section>
+            </div>
+
+            {/* 3. Business Details */}
+            <div style={{ opacity: isPhoneVerified ? 1 : 0.5, pointerEvents: isPhoneVerified ? 'auto' : 'none', transition: 'all 0.3s' }}>
+              <Section title="3. Business Details" icon={Briefcase} delay={0.2}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                 <Input label="Business Name" name="business_name" value={formData.business_name} onChange={handleInputChange} icon={Building2} required placeholder="Legal business name" />
                 <Input label="GST Number" name="gst_number" value={formData.gst_number} onChange={handleInputChange} icon={FileText} required placeholder="22AAAAA0000A1Z5" />
@@ -204,10 +379,12 @@ const SellerRegister = () => {
                   />
                 </div>
               </div>
-            </Section>
+              </Section>
+            </div>
 
-            {/* 3. Bank Details */}
-            <Section title="Bank Details" icon={Landmark} delay={0.3}>
+            {/* 4. Bank Details */}
+            <div style={{ opacity: isPhoneVerified ? 1 : 0.5, pointerEvents: isPhoneVerified ? 'auto' : 'none', transition: 'all 0.3s' }}>
+              <Section title="4. Bank Details" icon={Landmark} delay={0.3}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                 <Input label="Bank Account Name" name="bank_account_name" value={formData.bank_account_name} onChange={handleInputChange} required placeholder="Name as per bank records" />
                 <Input label="Bank Name" name="bank_name" value={formData.bank_name} onChange={handleInputChange} required placeholder="e.g. HDFC Bank" />
@@ -216,10 +393,12 @@ const SellerRegister = () => {
                 <Input label="Account Number" name="bank_account_number" value={formData.bank_account_number} onChange={handleInputChange} icon={CreditCard} required placeholder="XXXXXXXXXXXXXX" />
                 <Input label="IFSC Code" name="bank_ifsc" value={formData.bank_ifsc} onChange={handleInputChange} required placeholder="HDFC0001234" />
               </div>
-            </Section>
+              </Section>
+            </div>
 
-            {/* 4. Documents & Images */}
-            <Section title="Document & Image Uploads" icon={FileCheck} delay={0.4}>
+            {/* 5. Documents & Images */}
+            <div style={{ opacity: isPhoneVerified ? 1 : 0.5, pointerEvents: isPhoneVerified ? 'auto' : 'none', transition: 'all 0.3s' }}>
+              <Section title="5. Document & Image Uploads" icon={FileCheck} delay={0.4}>
               <p style={{ fontSize: '14px', color: 'var(--text-dim)', marginBottom: '24px' }}>Please upload clear copies of the following documents and images (PDF, JPG, or PNG).</p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
                 <FileInput label="PAN Card Copy" name="pan_card_copy" onChange={handleFileChange} required fileName={files.pan_card_copy?.name} />
@@ -230,6 +409,7 @@ const SellerRegister = () => {
                 <FileInput label="Owner Image" name="owner_image" onChange={handleFileChange} required fileName={files.owner_image?.name} />
               </div>
             </Section>
+            </div>
 
             {/* Error Message */}
             <AnimatePresence>

@@ -20,6 +20,28 @@ const Orders = () => {
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+
+  const handleVerifyOtp = async () => {
+    if (!otpCode) {
+      alert('Please enter the OTP code.');
+      return;
+    }
+    setVerifyingOtp(true);
+    try {
+      const response = await api.post(`orders/${selectedOrder.id}/verify_delivery_otp/`, { otp_code: otpCode });
+      alert(response.data?.status || 'Delivery verified successfully!');
+      setOtpCode('');
+      fetchOrders();
+      // Update local state to reflect the closed status
+      setSelectedOrder(prev => ({ ...prev, status: 'CLOSED' }));
+    } catch (error) {
+      alert(error.response?.data?.error || 'Failed to verify OTP. Please check the code and try again.');
+    } finally {
+      setVerifyingOtp(false);
+    }
+  };
 
   useEffect(() => {
     fetchOrders();
@@ -369,10 +391,56 @@ const Orders = () => {
                     <div>
                       <h4 style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '16px', letterSpacing: '0.05em' }}>Update Workflow Progress</h4>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        {nextActions.length === 0 ? (
-                          <div style={{ padding: '16px', background: '#ECFDF5', color: '#059669', borderRadius: 'var(--radius-md)', border: '1px solid #A7F3D0', fontWeight: 700, fontSize: '14px', textAlign: 'center' }}>
-                            All updates completed. Awaiting admin review.
+                        {selectedOrder.status === 'COMPLETED' && (
+                          <div style={{ padding: '20px', background: '#EFF6FF', borderRadius: 'var(--radius-md)', border: '1px solid #BFDBFE', marginBottom: '8px' }}>
+                            <h4 style={{ fontSize: '14px', fontWeight: 800, color: '#1E40AF', marginBottom: '8px' }}>Deliver Order (OTP Verification)</h4>
+                            <p style={{ fontSize: '12px', color: '#1E3A8A', marginBottom: '16px' }}>Enter the 6-digit OTP code sent to the customer's phone number to verify and close the order.</p>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                              <input
+                                type="text"
+                                placeholder="Enter OTP Code"
+                                value={otpCode}
+                                onChange={(e) => setOtpCode(e.target.value)}
+                                style={{
+                                  flex: 1,
+                                  padding: '10px 14px',
+                                  borderRadius: 'var(--radius-sm)',
+                                  border: '1px solid #93C5FD',
+                                  fontSize: '14px',
+                                  fontWeight: 700,
+                                  textAlign: 'center',
+                                  letterSpacing: '2px'
+                                }}
+                              />
+                              <button
+                                onClick={handleVerifyOtp}
+                                disabled={verifyingOtp}
+                                style={{
+                                  padding: '10px 20px',
+                                  background: '#2563EB',
+                                  color: '#fff',
+                                  borderRadius: 'var(--radius-sm)',
+                                  fontWeight: 700,
+                                  border: 'none',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                {verifyingOtp ? 'Verifying...' : 'Verify & Deliver'}
+                              </button>
+                            </div>
+                            {(selectedOrder.delivery_otp || lastGeneratedOtp) && (
+                              <div style={{ marginTop: '12px', fontSize: '12px', color: '#1E40AF', fontWeight: 600 }}>
+                                Demo/Test OTP Code: <code style={{ background: '#DBEAFE', padding: '2px 6px', borderRadius: '4px' }}>{selectedOrder.delivery_otp || lastGeneratedOtp}</code>
+                              </div>
+                            )}
                           </div>
+                        )}
+                        {nextActions.length === 0 ? (
+                          selectedOrder.status !== 'COMPLETED' && (
+                            <div style={{ padding: '16px', background: '#ECFDF5', color: '#059669', borderRadius: 'var(--radius-md)', border: '1px solid #A7F3D0', fontWeight: 700, fontSize: '14px', textAlign: 'center' }}>
+                              {selectedOrder.status === 'CLOSED' ? 'Order closed and verified.' : 'All updates completed. Awaiting admin review.'}
+                            </div>
+                          )
                         ) : (
                           nextActions.map((act) => {
                             const IconComponent = act.icon;

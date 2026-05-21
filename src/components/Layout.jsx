@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard,
@@ -13,12 +13,14 @@ import {
   Menu,
   X,
   Wallet,
-  FileText
+  FileText,
+  Lock
 } from 'lucide-react';
 
 const Layout = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -26,13 +28,20 @@ const Layout = () => {
   const closeSidebar = () => setIsSidebarOpen(false);
   const toggleCollapse = () => setIsCollapsed(!isCollapsed);
 
+  const isApproved = user?.status === 'APPROVED';
+
+  useEffect(() => {
+    if (user && !isApproved && location.pathname !== '/profile') {
+      navigate('/profile', { replace: true });
+    }
+  }, [user, isApproved, location.pathname, navigate]);
+
   const menuItems = [
-    { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-    { name: 'My Orders', path: '/orders', icon: ShoppingBag },
-    { name: 'Invoices', path: '/invoices', icon: FileText },
-    
-    { name: 'Wallet & Earnings', path: '/wallet', icon: Wallet },
-    { name: 'Company Profile', path: '/profile', icon: User },
+    { name: 'Dashboard', path: '/', icon: LayoutDashboard, requiresApproval: true },
+    { name: 'My Orders', path: '/orders', icon: ShoppingBag, requiresApproval: true },
+    { name: 'Invoices', path: '/invoices', icon: FileText, requiresApproval: true },
+    { name: 'Wallet & Earnings', path: '/wallet', icon: Wallet, requiresApproval: true },
+    { name: 'Company Profile', path: '/profile', icon: User, requiresApproval: false },
   ];
 
 
@@ -62,18 +71,45 @@ const Layout = () => {
 
         <nav style={{ padding: '0 16px', flex: 1 }}>
           <ul style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            {menuItems.map((item) => (
-              <li key={item.name}>
-                <NavLink
-                  to={item.path}
-                  onClick={closeSidebar}
-                  className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                >
-                  <item.icon size={20} style={{ minWidth: '20px' }} />
-                  <span className="link-text">{item.name}</span>
-                </NavLink>
-              </li>
-            ))}
+            {menuItems.map((item) => {
+              const isDisabled = item.requiresApproval && !isApproved;
+              
+              if (isDisabled) {
+                return (
+                  <li key={item.name} style={{ opacity: 0.5, cursor: 'not-allowed' }}>
+                    <div
+                      className="nav-link"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        padding: '12px 16px',
+                        color: 'var(--text-dim)',
+                        pointerEvents: 'none',
+                        userSelect: 'none'
+                      }}
+                    >
+                      <item.icon size={20} style={{ minWidth: '20px' }} />
+                      <span className="link-text" style={{ flex: 1 }}>{item.name}</span>
+                      <Lock size={14} style={{ opacity: 0.7 }} />
+                    </div>
+                  </li>
+                );
+              }
+
+              return (
+                <li key={item.name}>
+                  <NavLink
+                    to={item.path}
+                    onClick={closeSidebar}
+                    className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                  >
+                    <item.icon size={20} style={{ minWidth: '20px' }} />
+                    <span className="link-text">{item.name}</span>
+                  </NavLink>
+                </li>
+              );
+            })}
           </ul>
         </nav>
 
