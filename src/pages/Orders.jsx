@@ -76,6 +76,27 @@ const Orders = () => {
     }
   };
 
+  const updatePaymentStatus = async (orderId, newStatus) => {
+    try {
+      await api.patch(`orders/${orderId}/update_payment_status/`, { 
+        status: newStatus,
+        update_type: 'customer'
+      });
+      fetchOrders();
+      if (selectedOrder?.id === orderId) {
+        setSelectedOrder(prev => ({ 
+          ...prev, 
+          payment_details: {
+             ...prev.payment_details,
+             status: newStatus
+          } 
+        }));
+      }
+    } catch (error) {
+      alert(error.response?.data?.error || 'Failed to update payment status');
+    }
+  };
+
   const handleImageUpload = async (orderId, type, file) => {
     if (!file) return;
 
@@ -387,6 +408,55 @@ const Orders = () => {
                       </div>
                     </div>
 
+                    {/* Payment Info */}
+                    <div style={{ background: 'var(--bg-sub)', padding: '24px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+                      <h5 style={{ fontWeight: 800, fontSize: '12px', marginBottom: '16px', textTransform: 'uppercase', color: 'var(--text-dim)', letterSpacing: '0.05em' }}>Payment Details</h5>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '14px', fontWeight: 600 }}>Amount to Collect:</span>
+                          <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--primary)' }}>
+                            ₹{parseFloat(selectedOrder.grand_total || 0).toLocaleString()}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '14px', fontWeight: 600 }}>Payment Method:</span>
+                          <span style={{ fontSize: '14px', fontWeight: 700 }}>
+                            {selectedOrder.payment_details?.method_display || selectedOrder.payment_details?.method || 'COD'}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '14px', fontWeight: 600 }}>Status:</span>
+                          <span style={{ 
+                            fontSize: '14px', 
+                            fontWeight: 800,
+                            color: ['SUCCESS', 'PAID', 'COLLECTED'].includes(selectedOrder.payment_details?.status) ? '#059669' : '#D97706'
+                          }}>
+                            {selectedOrder.payment_details?.status || 'PENDING'}
+                          </span>
+                        </div>
+                        
+                        {(selectedOrder.payment_details?.method === 'COD' || !selectedOrder.payment_details?.method) && 
+                         !['SUCCESS', 'PAID', 'COLLECTED'].includes(selectedOrder.payment_details?.status) && (
+                          <button
+                            onClick={() => updatePaymentStatus(selectedOrder.id, 'COLLECTED')}
+                            style={{
+                              marginTop: '8px',
+                              padding: '10px',
+                              background: '#10B981',
+                              color: '#fff',
+                              borderRadius: 'var(--radius-sm)',
+                              fontWeight: 700,
+                              border: 'none',
+                              cursor: 'pointer',
+                              width: '100%'
+                            }}
+                          >
+                            Mark Payment as Collected
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
                     {/* Action Buttons */}
                     <div>
                       <h4 style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '16px', letterSpacing: '0.05em' }}>Update Workflow Progress</h4>
@@ -428,9 +498,9 @@ const Orders = () => {
                                 {verifyingOtp ? 'Verifying...' : 'Verify & Deliver'}
                               </button>
                             </div>
-                            {(selectedOrder.delivery_otp || lastGeneratedOtp) && (
+                            {selectedOrder.delivery_otp && (
                               <div style={{ marginTop: '12px', fontSize: '12px', color: '#1E40AF', fontWeight: 600 }}>
-                                Demo/Test OTP Code: <code style={{ background: '#DBEAFE', padding: '2px 6px', borderRadius: '4px' }}>{selectedOrder.delivery_otp || lastGeneratedOtp}</code>
+                                Demo/Test OTP Code: <code style={{ background: '#DBEAFE', padding: '2px 6px', borderRadius: '4px' }}>{selectedOrder.delivery_otp}</code>
                               </div>
                             )}
                           </div>
