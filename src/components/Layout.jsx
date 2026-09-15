@@ -14,7 +14,8 @@ import {
   X,
   Wallet,
   FileText,
-  Lock
+  Lock,
+  HeadphonesIcon
 } from 'lucide-react';
 
 const Layout = () => {
@@ -114,6 +115,14 @@ const Layout = () => {
         </nav>
 
         <div style={{ padding: '24px', borderTop: '1px solid var(--border)' }}>
+          <div style={{ marginBottom: '16px', display: isCollapsed ? 'none' : 'block', background: 'var(--bg-sub)', padding: '16px', borderRadius: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <HeadphonesIcon size={18} color="var(--primary)" />
+              <p style={{ fontSize: '14px', fontWeight: 800, margin: 0 }}>Contact Support</p>
+            </div>
+            <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: '0 0 4px 0', fontWeight: 600 }}>support@batterycommerce.com</p>
+            <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: 0, fontWeight: 600 }}>+91 1800-123-4567</p>
+          </div>
           <button
             onClick={logout}
             className="logout-btn"
