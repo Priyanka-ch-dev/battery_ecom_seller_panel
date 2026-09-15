@@ -121,7 +121,7 @@ const Layout = () => {
               <p style={{ fontSize: '14px', fontWeight: 800, margin: 0 }}>Contact Support</p>
             </div>
             <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: '0 0 4px 0', fontWeight: 600 }}>support@batterycommerce.com</p>
-            <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: 0, fontWeight: 600 }}>+91 1800-123-4567</p>
+            <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: 0, fontWeight: 600 }}>+91 9483808080 / 9731140727</p>
           </div>
           <button
             onClick={logout}
