@@ -35,6 +35,7 @@ const Register = () => {
     bank_account_number: '',
     bank_ifsc: '',
     bank_name: '',
+    bank_branch_name: '',
     business_address: ''
   });
   const [files, setFiles] = useState({
@@ -390,6 +391,7 @@ const Register = () => {
                  
                  <Input label="Account Holder Name" name="bank_account_name" value={formData.bank_account_name} onChange={handleInputChange} required />
                  <Input label="Bank Name" name="bank_name" value={formData.bank_name} onChange={handleInputChange} required />
+                 <Input label="Branch Name" name="bank_branch_name" value={formData.bank_branch_name} onChange={handleInputChange} required />
                  
                  <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '16px' }}>
                     <Input label="Account Number" name="bank_account_number" value={formData.bank_account_number} onChange={handleInputChange} required />

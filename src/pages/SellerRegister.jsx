@@ -39,6 +39,7 @@ const SellerRegister = () => {
     bank_account_number: '',
     bank_ifsc: '',
     bank_name: '',
+    bank_branch_name: '',
     business_address: ''
   });
 
@@ -390,6 +391,7 @@ const SellerRegister = () => {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                 <Input label="Bank Account Name" name="bank_account_name" value={formData.bank_account_name} onChange={handleInputChange} required placeholder="Name as per bank records" />
                 <Input label="Bank Name" name="bank_name" value={formData.bank_name} onChange={handleInputChange} required placeholder="e.g. HDFC Bank" />
+                <Input label="Branch Name" name="bank_branch_name" value={formData.bank_branch_name} onChange={handleInputChange} required placeholder="e.g. MG Road Branch" />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '20px', marginTop: '20px' }}>
                 <Input label="Account Number" name="bank_account_number" value={formData.bank_account_number} onChange={handleInputChange} icon={CreditCard} required placeholder="XXXXXXXXXXXXXX" />

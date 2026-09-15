@@ -321,6 +321,16 @@ const Profile = () => {
               />
             </div>
             <div className="input-group">
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '8px', color: 'var(--text-main)' }}>Branch Name</label>
+              <input
+                name="bank_branch_name"
+                value={profile.bank_branch_name || ''}
+                onChange={handleChange}
+                placeholder="e.g. MG Road Branch"
+                style={{ width: '100%', padding: '12px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-sub)' }}
+              />
+            </div>
+            <div className="input-group">
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '8px', color: 'var(--text-main)' }}>Account Number</label>
               <input
                 name="bank_account_number"
