@@ -48,7 +48,9 @@ const SellerRegister = () => {
     shop_license_copy: null,
     bank_passbook_copy: null,
     shop_image: null,
-    owner_image: null
+    owner_image: null,
+    authorized_letter: null,
+    msme_letter_copy: null
   });
   
   const [loading, setLoading] = useState(false);
@@ -402,11 +404,13 @@ const SellerRegister = () => {
               <p style={{ fontSize: '14px', color: 'var(--text-dim)', marginBottom: '24px' }}>Please upload clear copies of the following documents and images (PDF, JPG, or PNG).</p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
                 <FileInput label="PAN Card Copy" name="pan_card_copy" onChange={handleFileChange} required fileName={files.pan_card_copy?.name} />
-                <FileInput label="Aadhar Card Copy" name="aadhaar_card_copy" onChange={handleFileChange} required fileName={files.aadhaar_card_copy?.name} />
+                <FileInput label="Aadhaar Card Copy" name="aadhaar_card_copy" onChange={handleFileChange} required fileName={files.aadhaar_card_copy?.name} />
                 <FileInput label="Shop License Copy" name="shop_license_copy" onChange={handleFileChange} required fileName={files.shop_license_copy?.name} />
                 <FileInput label="Bank Passbook Copy" name="bank_passbook_copy" onChange={handleFileChange} required fileName={files.bank_passbook_copy?.name} />
                 <FileInput label="Shop Image" name="shop_image" onChange={handleFileChange} required fileName={files.shop_image?.name} />
                 <FileInput label="Owner Image" name="owner_image" onChange={handleFileChange} required fileName={files.owner_image?.name} />
+                <FileInput label="Authorized Letter" name="authorized_letter" onChange={handleFileChange} fileName={files.authorized_letter?.name} />
+                <FileInput label="MSME Letter Copy" name="msme_letter_copy" onChange={handleFileChange} fileName={files.msme_letter_copy?.name} />
               </div>
             </Section>
             </div>

@@ -43,7 +43,9 @@ const Register = () => {
     shop_license_copy: null,
     bank_passbook_copy: null,
     shop_image: null,
-    owner_image: null
+    owner_image: null,
+    authorized_letter: null,
+    msme_letter_copy: null
   });
   
   const [loading, setLoading] = useState(false);
@@ -419,6 +421,8 @@ const Register = () => {
                   <FileInput label="Bank Passbook Copy" name="bank_passbook_copy" onChange={handleFileChange} required fileName={files.bank_passbook_copy?.name} />
                   <FileInput label="Shop Image" name="shop_image" onChange={handleFileChange} required fileName={files.shop_image?.name} />
                   <FileInput label="Owner Image" name="owner_image" onChange={handleFileChange} required fileName={files.owner_image?.name} />
+                  <FileInput label="Authorized Letter" name="authorized_letter" onChange={handleFileChange} fileName={files.authorized_letter?.name} />
+                  <FileInput label="MSME Letter Copy" name="msme_letter_copy" onChange={handleFileChange} fileName={files.msme_letter_copy?.name} />
                </div>
             </div>
           )}

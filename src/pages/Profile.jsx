@@ -375,6 +375,9 @@ const Profile = () => {
               <div style={{ gridColumn: 'span 2' }}>
                 <FileUpload label="Bank Passbook/Cancelled Cheque" name="bank_passbook_copy" current={profile.bank_passbook_copy} onChange={handleFileChange} />
               </div>
+              <div style={{ gridColumn: 'span 2' }}>
+                <FileUpload label="MSME Letter Copy" name="msme_letter_copy" current={profile.msme_letter_copy} onChange={handleFileChange} />
+              </div>
             </div>
           </div>
 
